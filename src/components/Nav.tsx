@@ -10,6 +10,8 @@ const colors = {
   linkActiveBg: "#1f2937",
   buttonBg: "#1f2937",
   menuOverlayBg: "#111827", // Background for the mobile dropdown
+  // ADDED: Modern Font Stack
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 };
 
 // Helper component for individual links
@@ -30,6 +32,7 @@ function NavLink({ to, children, onClick }: { to: string; children: React.ReactN
         fontWeight: isActive ? 600 : 400,
         display: "block", // Ensure full width in mobile menu
         transition: "all 0.2s ease-in-out",
+        fontFamily: colors.fontFamily, // <--- APPLY FONT HERE
       }}
     >
       {children}
@@ -89,7 +92,7 @@ export default function Nav() {
           cursor: "pointer",
           fontWeight: 600,
           marginTop: isMobile ? "10px" : "0", // Add spacing on mobile
-          fontFamily: "inherit",
+          fontFamily: colors.fontFamily, // <--- APPLY FONT HERE
           fontSize: "inherit"
         }}>
           Logout
@@ -120,7 +123,7 @@ export default function Nav() {
             src="/logo.png" 
             alt="Ticker Ink" 
             style={{ 
-              height: isMobile ? "100px" : "120px", // Drastically smaller on mobile
+              height: isMobile ? "100px" : "120px", // Preserved your setting
               width: "auto",
               objectFit: "contain",
               transition: "height 0.3s ease" // Smooth resize
