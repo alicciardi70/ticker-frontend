@@ -421,22 +421,6 @@ export default function DeviceTeams() {
           </ul>
 
           <div className="footer" style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-            <button
-              className="btn"
-              onClick={() => navigator.clipboard.writeText(`${API_BASE}/devices/${deviceId}/config`)}
-              title="Copy device config URL"
-            >
-              📋 Copy Config URL
-            </button>
-
-            <button
-              className="btn"
-              onClick={() => deviceId && downloadConfigJson(deviceId, API_BASE)}
-              title="Download JSON file"
-            >
-              💾 Download JSON
-            </button>
-
             <button className="btn primary" disabled={saving} onClick={save}>
               {saving ? "Saving…" : "Save changes"}
             </button>
