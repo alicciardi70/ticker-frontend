@@ -1,20 +1,32 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
+// Define dark theme colors for consistency
+const colors = {
+  // CHANGED: Set to pure black #000000 to match the LED logo background perfectly
+  navBackground: "#000000", 
+  navBorder: "#333333",     // Slightly lighter border for contrast
+  text: "#f9fafb",          // Almost white text
+  textActive: "#ffffff",    // Pure white for active link
+  linkActiveBg: "#1f2937",  // Subtle lighter gray for active state background
+  buttonBg: "#1f2937",      // Dark background for logout button
+};
+
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
   const { pathname, hash } = useLocation();
-  // HashRouter uses hash, but pathname still updates; check both
   const isActive = (hash.replace("#", "") || "/") === to || pathname === to;
+  
   return (
     <Link
       to={to}
       style={{
-        padding: "8px 10px",
+        padding: "8px 12px",
         borderRadius: 8,
         textDecoration: "none",
-        color: isActive ? "#111827" : "#374151",
-        background: isActive ? "#eef2ff" : "transparent",
-        border: isActive ? "1px solid #c7d2fe" : "1px solid transparent",
+        color: isActive ? colors.textActive : colors.text,
+        background: isActive ? colors.linkActiveBg : "transparent",
+        fontWeight: isActive ? 600 : 400,
+        transition: "all 0.2s ease-in-out",
       }}
     >
       {children}
@@ -39,12 +51,24 @@ export default function Nav() {
   }
 
   return (
-    <header style={{ background: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link to="/" style={{ fontWeight: 800, letterSpacing: 0.2, color: "#111827", textDecoration: "none", fontSize: 18 }}>
-          Ticker Ink
+    <header style={{ background: colors.navBackground, borderBottom: `1px solid ${colors.navBorder}` }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        
+        {/* Logo Link */}
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img 
+            src="/logo.png" 
+            alt="Ticker Ink" 
+            style={{ 
+              // CHANGED: Increased height to 120px (makes it much larger)
+              height: "120px", 
+              width: "auto",
+              objectFit: "contain"
+            }} 
+          />
         </Link>
 
+        {/* Navigation Links */}
         <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <NavLink to="/">Home</NavLink>
           <NavLink to="/devices">My Devices</NavLink>
@@ -54,7 +78,18 @@ export default function Nav() {
           {!authed ? (
             <NavLink to="/login">Login</NavLink>
           ) : (
-            <button onClick={logout} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer" }}>
+            <button onClick={logout} style={{ 
+              padding: "8px 12px", 
+              borderRadius: 8, 
+              border: `1px solid ${colors.navBorder}`, 
+              background: colors.buttonBg, 
+              color: colors.text,
+              cursor: "pointer",
+              fontWeight: 600,
+              transition: "all 0.2s ease-in-out",
+              fontFamily: "inherit",
+              fontSize: "inherit"
+            }}>
               Logout
             </button>
           )}
