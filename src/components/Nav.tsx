@@ -75,6 +75,7 @@ export default function Nav() {
   const NavItems = () => (
     <>
       <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
+      <NavLink to="/products" onClick={() => setMenuOpen(false)}>Products</NavLink>
       <NavLink to="/devices" onClick={() => setMenuOpen(false)}>My Devices</NavLink>
       <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
       <NavLink to="/account" onClick={() => setMenuOpen(false)}>My Account</NavLink>
