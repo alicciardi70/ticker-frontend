@@ -120,7 +120,7 @@ export default function Nav() {
             src="/logo.png" 
             alt="Ticker Ink" 
             style={{ 
-              height: isMobile ? "45px" : "120px", // Drastically smaller on mobile
+              height: isMobile ? "100px" : "120px", // Drastically smaller on mobile
               width: "auto",
               objectFit: "contain",
               transition: "height 0.3s ease" // Smooth resize
