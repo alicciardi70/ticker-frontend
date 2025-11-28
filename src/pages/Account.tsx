@@ -1,5 +1,15 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+// We need API_BASE for the fetch call
+import { API_BASE } from "../lib/api";
 
+// Helper to get authorization headers
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Styles object remains the same (for brevity, kept outside the function)
 const styles = {
   container: {
     maxWidth: 600,
@@ -60,8 +70,50 @@ const styles = {
 
 export default function Account() {
   const navigate = useNavigate();
-  // Mock email for now since we don't have a user context yet
-  const email = "user@example.com"; 
+  // State to hold the user's email
+  const [userEmail, setUserEmail] = useState('Loading profile...'); 
+  const [loading, setLoading] = useState(true);
+
+  // FIX: Fetch real email from backend using the token
+  useEffect(() => {
+    async function fetchUserEmail() {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setUserEmail('Not logged in');
+            navigate("/login", { replace: true });
+            return;
+        }
+
+        try {
+            // --- FIX IS HERE: CHANGED /users/me to /auth/me ---
+            const res = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
+            
+            if (res.status === 401) {
+                // Token invalid or expired
+                localStorage.removeItem("token");
+                navigate("/login", { replace: true });
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to load user profile.");
+
+            const data = await res.json();
+            
+            if (data.email) {
+                setUserEmail(data.email);
+            } else {
+                setUserEmail('Email not found in profile.');
+            }
+        } catch (e) {
+            setUserEmail('Error fetching email.');
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchUserEmail();
+  }, [navigate]);
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -79,7 +131,7 @@ export default function Account() {
         <div style={styles.card}>
           <div style={styles.row}>
             <span style={{ color: "#64748b" }}>Email</span>
-            <span style={{ fontWeight: 500 }}>{email}</span>
+            <span style={{ fontWeight: 500 }}>{loading ? 'Loading...' : userEmail}</span> 
           </div>
           <div style={{ ...styles.row, borderBottom: "none" }}>
             <span style={{ color: "#64748b" }}>Password</span>
