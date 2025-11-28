@@ -1,8 +1,22 @@
-/* C:\hedgefund\tickerview\website\frontend\src\index.css */
 @import "tailwindcss";
+
+/* --- START FIX --- */
+/* Reset default browser spacing & prevent horizontal scroll */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* Prevents side-to-side wobbling */
+  background-color: #f6f7fb; /* Matches your app background */
+}
+
+#root {
+  width: 100%;
+  isolation: isolate;
+}
+/* --- END FIX --- */
 
 /* your custom styles below, if any */
 :root { color-scheme: light dark; }
-
 
 
