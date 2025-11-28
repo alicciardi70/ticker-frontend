@@ -9,30 +9,32 @@ const colors = {
   textActive: "#ffffff",
   linkActiveBg: "#1f2937",
   buttonBg: "#1f2937",
-  menuOverlayBg: "#111827", // Background for the mobile dropdown
-  // ADDED: Modern Font Stack
+  menuOverlayBg: "#111827",
+  // Modern Font Stack
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 };
 
 // Helper component for individual links
 function NavLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick?: () => void }) {
-  const { pathname, hash } = useLocation();
-  const isActive = (hash.replace("#", "") || "/") === to || pathname === to;
+  const { pathname } = useLocation();
+  
+  // FIX #2: Simplified Active Logic
+  const isActive = pathname === to || (to !== "/" && pathname.startsWith(to));
   
   return (
     <Link
       to={to}
       onClick={onClick}
       style={{
-        padding: "10px 16px", // Larger touch target for mobile
+        padding: "10px 16px",
         borderRadius: 8,
         textDecoration: "none",
         color: isActive ? colors.textActive : colors.text,
         background: isActive ? colors.linkActiveBg : "transparent",
         fontWeight: isActive ? 600 : 400,
-        display: "block", // Ensure full width in mobile menu
+        display: "block",
         transition: "all 0.2s ease-in-out",
-        fontFamily: colors.fontFamily, // <--- APPLY FONT HERE
+        fontFamily: colors.fontFamily,
       }}
     >
       {children}
@@ -45,23 +47,22 @@ export default function Nav() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [menuOpen, setMenuOpen] = useState(false);
   const nav = useNavigate();
+  const location = useLocation(); // Hook into route changes
 
   // Handle Resize Detection
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) setMenuOpen(false); // Close menu if we switch to desktop
+      if (window.innerWidth >= 768) setMenuOpen(false);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Handle Auth State
+  // FIX #1: Better Auth Check
   useEffect(() => {
-    const onStorage = () => setAuthed(!!localStorage.getItem("token"));
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+    setAuthed(!!localStorage.getItem("token"));
+  }, [location]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -83,16 +84,16 @@ export default function Nav() {
       ) : (
         <button onClick={logout} style={{ 
           padding: "10px 16px", 
-          width: "100%", // Full width on mobile
+          width: "100%",
           textAlign: "left",
           borderRadius: 8, 
-          border: `1px solid ${colors.navBorder}`, 
-          background: colors.buttonBg, 
+          border: "none", 
+          background: "transparent", // <--- CHANGED: Now matches navbar background (black)
           color: colors.text,
           cursor: "pointer",
           fontWeight: 600,
-          marginTop: isMobile ? "10px" : "0", // Add spacing on mobile
-          fontFamily: colors.fontFamily, // <--- APPLY FONT HERE
+          marginTop: isMobile ? "10px" : "0",
+          fontFamily: colors.fontFamily,
           fontSize: "inherit"
         }}>
           Logout
@@ -105,7 +106,7 @@ export default function Nav() {
     <header style={{ 
       background: colors.navBackground, 
       borderBottom: `1px solid ${colors.navBorder}`,
-      position: "relative", // Needed for absolute positioning of mobile menu
+      position: "relative",
       zIndex: 50
     }}>
       <div style={{ 
@@ -117,28 +118,28 @@ export default function Nav() {
         justifyContent: "space-between" 
       }}>
         
-        {/* LOGO: Smaller on mobile, Large on Desktop */}
+        {/* LOGO */}
         <Link to="/" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img 
             src="/logo.png" 
             alt="Ticker Ink" 
             style={{ 
-              height: isMobile ? "100px" : "120px", // Preserved your setting
+              height: isMobile ? "100px" : "120px", 
               width: "auto",
               objectFit: "contain",
-              transition: "height 0.3s ease" // Smooth resize
+              transition: "height 0.3s ease"
             }} 
           />
         </Link>
 
-        {/* DESKTOP NAV: Hidden on mobile */}
+        {/* DESKTOP NAV */}
         {!isMobile && (
           <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <NavItems />
           </nav>
         )}
 
-        {/* MOBILE HAMBURGER BUTTON: Hidden on desktop */}
+        {/* MOBILE HAMBURGER BUTTON */}
         {isMobile && (
           <button 
             onClick={() => setMenuOpen(!menuOpen)}
@@ -152,15 +153,12 @@ export default function Nav() {
               justifyContent: "center"
             }}
           >
-            {/* Simple SVG Icon for Menu / Close */}
             {menuOpen ? (
-              // X Icon
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             ) : (
-              // Hamburger Icon
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
