@@ -138,6 +138,14 @@ export default function Login() {
             style={styles.input}
           />
         </div>
+        
+        {/* Forgot Password Link */}
+        <div style={{ textAlign: "right", marginTop: -8, marginBottom: 4 }}>
+            <Link to="/forgot" style={{ color: styles.primary, fontSize: 14, textDecoration: "none" }}>
+                Forgot Password?
+            </Link>
+        </div>
+
         <button
           disabled={loading}
           style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
