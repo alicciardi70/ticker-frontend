@@ -1,31 +1,34 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-// Define dark theme colors for consistency
+// Define dark theme colors
 const colors = {
-  // CHANGED: Set to pure black #000000 to match the LED logo background perfectly
-  navBackground: "#000000", 
-  navBorder: "#333333",     // Slightly lighter border for contrast
-  text: "#f9fafb",          // Almost white text
-  textActive: "#ffffff",    // Pure white for active link
-  linkActiveBg: "#1f2937",  // Subtle lighter gray for active state background
-  buttonBg: "#1f2937",      // Dark background for logout button
+  navBackground: "#000000",
+  navBorder: "#333333",
+  text: "#f9fafb",
+  textActive: "#ffffff",
+  linkActiveBg: "#1f2937",
+  buttonBg: "#1f2937",
+  menuOverlayBg: "#111827", // Background for the mobile dropdown
 };
 
-function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+// Helper component for individual links
+function NavLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick?: () => void }) {
   const { pathname, hash } = useLocation();
   const isActive = (hash.replace("#", "") || "/") === to || pathname === to;
   
   return (
     <Link
       to={to}
+      onClick={onClick}
       style={{
-        padding: "8px 12px",
+        padding: "10px 16px", // Larger touch target for mobile
         borderRadius: 8,
         textDecoration: "none",
         color: isActive ? colors.textActive : colors.text,
         background: isActive ? colors.linkActiveBg : "transparent",
         fontWeight: isActive ? 600 : 400,
+        display: "block", // Ensure full width in mobile menu
         transition: "all 0.2s ease-in-out",
       }}
     >
@@ -36,8 +39,21 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
 
 export default function Nav() {
   const [authed, setAuthed] = useState<boolean>(!!localStorage.getItem("token"));
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [menuOpen, setMenuOpen] = useState(false);
   const nav = useNavigate();
 
+  // Handle Resize Detection
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) setMenuOpen(false); // Close menu if we switch to desktop
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Handle Auth State
   useEffect(() => {
     const onStorage = () => setAuthed(!!localStorage.getItem("token"));
     window.addEventListener("storage", onStorage);
@@ -47,54 +63,129 @@ export default function Nav() {
   function logout() {
     localStorage.removeItem("token");
     setAuthed(false);
+    setMenuOpen(false);
     nav("/login");
   }
 
+  // Common Navigation Items
+  const NavItems = () => (
+    <>
+      <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
+      <NavLink to="/devices" onClick={() => setMenuOpen(false)}>My Devices</NavLink>
+      <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
+      <NavLink to="/account" onClick={() => setMenuOpen(false)}>My Account</NavLink>
+
+      {!authed ? (
+        <NavLink to="/login" onClick={() => setMenuOpen(false)}>Login</NavLink>
+      ) : (
+        <button onClick={logout} style={{ 
+          padding: "10px 16px", 
+          width: "100%", // Full width on mobile
+          textAlign: "left",
+          borderRadius: 8, 
+          border: `1px solid ${colors.navBorder}`, 
+          background: colors.buttonBg, 
+          color: colors.text,
+          cursor: "pointer",
+          fontWeight: 600,
+          marginTop: isMobile ? "10px" : "0", // Add spacing on mobile
+          fontFamily: "inherit",
+          fontSize: "inherit"
+        }}>
+          Logout
+        </button>
+      )}
+    </>
+  );
+
   return (
-    <header style={{ background: colors.navBackground, borderBottom: `1px solid ${colors.navBorder}` }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <header style={{ 
+      background: colors.navBackground, 
+      borderBottom: `1px solid ${colors.navBorder}`,
+      position: "relative", // Needed for absolute positioning of mobile menu
+      zIndex: 50
+    }}>
+      <div style={{ 
+        maxWidth: 1200, 
+        margin: "0 auto", 
+        padding: "12px 20px", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "space-between" 
+      }}>
         
-        {/* Logo Link */}
-        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+        {/* LOGO: Smaller on mobile, Large on Desktop */}
+        <Link to="/" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img 
             src="/logo.png" 
             alt="Ticker Ink" 
             style={{ 
-              // CHANGED: Increased height to 120px (makes it much larger)
-              height: "120px", 
+              height: isMobile ? "45px" : "120px", // Drastically smaller on mobile
               width: "auto",
-              objectFit: "contain"
+              objectFit: "contain",
+              transition: "height 0.3s ease" // Smooth resize
             }} 
           />
         </Link>
 
-        {/* Navigation Links */}
-        <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/devices">My Devices</NavLink>
-          <NavLink to="/orders">My Orders</NavLink>
-          <NavLink to="/account">My Account</NavLink>
+        {/* DESKTOP NAV: Hidden on mobile */}
+        {!isMobile && (
+          <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <NavItems />
+          </nav>
+        )}
 
-          {!authed ? (
-            <NavLink to="/login">Login</NavLink>
-          ) : (
-            <button onClick={logout} style={{ 
-              padding: "8px 12px", 
-              borderRadius: 8, 
-              border: `1px solid ${colors.navBorder}`, 
-              background: colors.buttonBg, 
-              color: colors.text,
+        {/* MOBILE HAMBURGER BUTTON: Hidden on desktop */}
+        {isMobile && (
+          <button 
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={{
+              background: "transparent",
+              border: "none",
               cursor: "pointer",
-              fontWeight: 600,
-              transition: "all 0.2s ease-in-out",
-              fontFamily: "inherit",
-              fontSize: "inherit"
-            }}>
-              Logout
-            </button>
-          )}
-        </nav>
+              padding: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            {/* Simple SVG Icon for Menu / Close */}
+            {menuOpen ? (
+              // X Icon
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            ) : (
+              // Hamburger Icon
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            )}
+          </button>
+        )}
       </div>
+
+      {/* MOBILE MENU DROPDOWN */}
+      {isMobile && menuOpen && (
+        <div style={{
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          right: 0,
+          background: colors.menuOverlayBg,
+          borderBottom: `1px solid ${colors.navBorder}`,
+          padding: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          boxShadow: "0px 10px 15px -3px rgba(0,0,0,0.5)"
+        }}>
+          <NavItems />
+        </div>
+      )}
     </header>
   );
 }
