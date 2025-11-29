@@ -1,39 +1,26 @@
-// src/pages/Login.tsx (DROP-IN REPLACEMENT WITH FONT FIX)
+// src/pages/Login.tsx
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
 
-// Define props interface for the component
 interface LoginProps {
     onLoginSuccess?: () => void;
 }
 
-// Styles to match the rest of the modern app
 const styles = {
-    // Shared color and font variables
     primary: "#111827",
-    errorBg: "#fee2e2",
-    errorText: "#b91c1c",
-    errorBorder: "#fecaca",
-    borderColor: "#e5e7eb",
-
-    // Card and Form container
     wrapper: {
-        // FIX: Removed "60px auto" margin because this component is rendered inside a grid layout on Home.tsx
-        // If rendered standalone, the parent component handles centering.
         maxWidth: 420,
         margin: "0", 
         background: "#fff",
         border: "1px solid #e5e7eb",
         borderRadius: 12,
         padding: 24, 
-        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
-        // 🚨 FONT FIX: Use a more robust, modern system font stack
-        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif",
         color: "#0f172a", 
     },
-    // Standard button primary
     button: {
         padding: "10px 16px",
         borderRadius: 8,
@@ -43,21 +30,25 @@ const styles = {
         cursor: "pointer",
         width: "100%",
         fontWeight: 600,
-        transition: "opacity 0.15s",
         fontSize: 15,
     },
-    // Input styling
     input: {
         width: "100%",
         padding: "10px",
+        paddingRight: "40px", // Extra padding for the eye icon
         border: "1px solid #e5e7eb",
         borderRadius: 8,
-        marginBottom: 10,
         outline: "none",
-        transition: "border-color 0.15s",
         fontSize: 15,
+        boxSizing: "border-box" as const,
     },
-    // Error styling
+    label: {
+        display: "block",
+        fontSize: 14,
+        marginBottom: 6,
+        color: "#374151",
+        fontWeight: 600,
+    },
     error: {
         color: "#b91c1c",
         background: "#fee2e2",
@@ -67,19 +58,40 @@ const styles = {
         marginBottom: 16,
         fontSize: 14,
     },
-    label: {
-        display: "block",
-        fontSize: 14,
-        marginBottom: 4,
-        color: "#374151",
-        fontWeight: 500,
+    eyeBtn: {
+        position: "absolute" as const,
+        right: 10,
+        top: "50%",
+        transform: "translateY(-50%)",
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        color: "#6b7280",
+        padding: 4,
+        display: "flex",
+        alignItems: "center",
     }
 };
+
+// Simple SVG Icons
+const EyeIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18" />
+  </svg>
+);
 
 export default function Login({ onLoginSuccess }: LoginProps) { 
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New State
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -107,10 +119,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await res.json();
       localStorage.setItem("token", data.access_token);
       
-      if (onLoginSuccess) {
-          onLoginSuccess();
-      }
-      
+      if (onLoginSuccess) onLoginSuccess();
       nav("/devices", { replace: true });
     } catch (e: any) {
       setErr(e?.message ?? "Login failed");
@@ -124,11 +133,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       <h1 style={{ marginBottom: 24, fontSize: 28, fontWeight: 700, textAlign: "center" }}>Sign in to Ticker.ink</h1>
 
       <form onSubmit={onSubmit} style={{ display:"grid", gap: 16 }}>
-        {err && (
-          <div style={styles.error}>
-            {err}
-          </div>
-        )}
+        {err && <div style={styles.error}>{err}</div>}
+        
         <div>
           <label style={styles.label}>Email Address</label>
           <input
@@ -140,19 +146,30 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             style={styles.input}
           />
         </div>
+
         <div>
           <label style={styles.label}>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e=>setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            style={styles.input}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={e=>setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              style={styles.input}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={styles.eyeBtn}
+              tabIndex={-1} // Skip tab focusing
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </div>
         
-        {/* Forgot Password Link */}
         <div style={{ textAlign: "right", marginTop: -8, marginBottom: 4 }}>
             <Link to="/forgot" style={{ color: styles.primary, fontSize: 14, textDecoration: "none" }}>
                 Forgot Password?

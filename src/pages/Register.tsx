@@ -3,10 +3,25 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE } from "../lib/api";
 
+// Reusing the same SVG Icons
+const EyeIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18" />
+  </svg>
+);
+
 export default function Register() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New State
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -42,9 +57,8 @@ export default function Register() {
       background: "#fff", 
       border: "1px solid #e5e7eb", 
       borderRadius: 12, 
-      padding: 32, // Increased padding slightly for better spacing
-      // 🚨 FONT UPGRADE
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+      padding: 32,
+      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif",
       color: "#0f172a"
     }}>
       <h1 style={{ marginBottom: 24, fontSize: 24, fontWeight: 800 }}>Create your account</h1>
@@ -63,19 +77,49 @@ export default function Register() {
             onChange={(e) => setEmail(e.target.value)}
             required
             type="email"
-            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 16 }}
+            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 16, boxSizing: "border-box" }}
             />
         </div>
 
         <div style={{ marginBottom: 24 }}>
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Password</label>
-            <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            type="password"
-            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 16 }}
-            />
+            <div style={{ position: "relative" }}>
+                <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                type={showPassword ? "text" : "password"}
+                style={{ 
+                    width: "100%", 
+                    padding: "10px 12px", 
+                    paddingRight: "40px", 
+                    border: "1px solid #e5e7eb", 
+                    borderRadius: 8, 
+                    fontSize: 16, 
+                    boxSizing: "border-box" 
+                }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#6b7280",
+                    padding: 4,
+                    display: "flex",
+                    alignItems: "center"
+                  }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+            </div>
         </div>
 
         <button
