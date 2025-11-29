@@ -1,17 +1,23 @@
-// src/pages/Order.tsx
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
 
+type OrderItem = {
+    product_name: string;
+    qty: number;
+    unit_price_cents: number;
+};
+
 type OrderStatus = {
   order_id: string;
   derived_status: string;
-  paid: boolean;
-  shipped: boolean;
-  delivered: boolean;
-  cancelled: boolean;
-  returned: boolean;
   total_cents: number;
+  subtotal_cents: number;
+  tax_cents: number;
+  shipping_cents: number;
+  ship_name: string;
+  ship_address: string;
+  items: OrderItem[];
   created_at?: string;
 };
 
@@ -21,90 +27,120 @@ export default function OrderPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Format currency helper
+  const fmt = (cents: number) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+
   useEffect(() => {
     if (!id) return;
 
-    // ---------------------------------------------------------
-    // CRITICAL FIX: DETECT STRIPE ID AND SYNC FIRST
-    // ---------------------------------------------------------
     if (id.startsWith("cs_")) {
        setLoading(true);
-       // 1. Call the Sync Endpoint
        fetch(`${API_BASE}/payments/sync-order/${id}`, { method: 'POST' })
-         .then(r => {
-             if (!r.ok) throw new Error("Payment sync failed");
-             return r.json();
-         })
+         .then(r => r.ok ? r.json() : Promise.reject("Sync failed"))
          .then(syncData => {
-            // 2. Success! We got the REAL Order UUID.
-            
-            // Update the URL in the browser so the user doesn't see "cs_test..." anymore
             window.history.replaceState(null, "", `/#/order/${syncData.order_id}`);
-            
-            // 3. Now fetch the actual order data using the REAL UUID
             return fetch(`${API_BASE}/orders/${syncData.order_id}/status`);
          })
          .then(r => r.json())
-         .then(orderData => {
-             setData(orderData);
-             setLoading(false);
-         })
-         .catch(e => {
-             console.error(e);
-             setErr("Could not verify payment. Please contact support.");
-             setLoading(false);
-         });
-       
-       return; // <--- STOP HERE so we don't run the code below
+         .then(setData)
+         .catch(e => setErr("Could not verify payment."))
+         .finally(() => setLoading(false));
+       return;
     }
 
-    // ---------------------------------------------------------
-    // STANDARD LOAD (For existing orders with real UUIDs)
-    // ---------------------------------------------------------
     setLoading(true);
-    setErr(null);
     fetch(`${API_BASE}/orders/${encodeURIComponent(id)}/status`)
-      .then(async r => {
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        return r.json();
-      })
+      .then(async r => r.ok ? r.json() : Promise.reject(await r.text()))
       .then(setData)
       .catch(e => setErr(String(e)))
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return (
-      <div style={{ padding: 40, textAlign: "center" }}>
-          <h2>Processing Order...</h2>
-          <div className="spinner" style={{ 
-              width: 30, height: 30, border: "3px solid #ccc", borderTop: "3px solid #000", 
-              borderRadius: "50%", margin: "20px auto", animation: "spin 1s linear infinite" 
-          }} />
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-  );
-
-  if (err) return <div style={{ padding: 24, color: "crimson" }}>Error: {err}</div>;
-  if (!data) return <div style={{ padding: 24 }}>Order not found</div>;
+  if (loading) return <div style={{padding:40, textAlign:'center'}}>Loading Receipt...</div>;
+  if (err) return <div style={{padding:40, color:'crimson'}}>Error: {err}</div>;
+  if (!data) return <div style={{padding:40}}>Order not found</div>;
 
   return (
-    <div style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
-      <Link to="/" style={{ color: "#666", textDecoration: "none" }}>← Back Home</Link>
+    <div style={{ padding: "40px 20px", maxWidth: 600, margin: "0 auto", fontFamily: "Inter, system-ui, sans-serif", color: "#0f172a" }}>
+      <Link to="/" style={{ color: "#64748b", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>← Back Home</Link>
       
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 32, marginTop: 20, background: "white" }}>
-          <h1 style={{ color: "green", marginTop: 0 }}>Order Confirmed!</h1>
-          <p style={{ fontSize: 18, color: "#444" }}>Thank you for your purchase.</p>
+      <div style={{ marginTop: 20, background: "white", border: "1px solid #e2e8f0", borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)" }}>
           
-          <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, marginTop: 20 }}>
-              <div style={{ marginBottom: 8 }}>
-                  <strong>Order ID:</strong> <span style={{ fontFamily: "monospace" }}>{data.order_id}</span>
+          <div style={{ background: "#f8fafc", padding: "32px", borderBottom: "1px solid #e2e8f0", textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+              <h1 style={{ margin: "0 0 8px 0", fontSize: 24, fontWeight: 800 }}>Order Confirmed!</h1>
+              <p style={{ margin: 0, color: "#64748b" }}>Thank you for your purchase.</p>
+          </div>
+
+          <div style={{ padding: "32px" }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32, fontSize: 14 }}>
+                  <div>
+                      <div style={{ color: "#64748b", marginBottom: 4 }}>Order Number</div>
+                      <div style={{ fontFamily: "monospace", fontWeight: 600 }}>{data.order_id.split('-')[0]}...</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                      <div style={{ color: "#64748b", marginBottom: 4 }}>Status</div>
+                      <span style={{ background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: 99, fontWeight: 700, textTransform: "capitalize" }}>
+                          {data.derived_status}
+                      </span>
+                  </div>
               </div>
-              <div>
-                  <strong>Status:</strong> <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: 4, fontWeight: "bold", fontSize: 14 }}>{data.derived_status}</span>
+
+              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
+
+              {/* ITEMS */}
+              <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: 16, letterSpacing: '0.05em' }}>Items</h3>
+                  {data.items?.map((item, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 14 }}>
+                          <div>
+                              <span style={{ fontWeight: 600, marginRight: 8 }}>{item.qty}x</span> 
+                              {item.product_name}
+                          </div>
+                          <div>{fmt(item.unit_price_cents * item.qty)}</div>
+                      </div>
+                  ))}
               </div>
-              <div style={{ marginTop: 8 }}>
-                  <strong>Total:</strong> ${(data.total_cents / 100).toFixed(2)}
+
+              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
+
+              {/* SUMMARY */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                      <span>Subtotal</span>
+                      <span>{fmt(data.subtotal_cents || data.total_cents)}</span>
+                  </div>
+                  {data.tax_cents > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                          <span>Sales Tax</span>
+                          <span>{fmt(data.tax_cents)}</span>
+                      </div>
+                  )}
+                  {data.shipping_cents > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                          <span>Shipping</span>
+                          <span>{fmt(data.shipping_cents)}</span>
+                      </div>
+                  )}
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 20, marginTop: 12, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                      <span>Total</span>
+                      <span>{fmt(data.total_cents)}</span>
+                  </div>
               </div>
+
+              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
+
+              {/* ADDRESS */}
+              <div style={{ fontSize: 14 }}>
+                  <div style={{ color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.05em" }}>Shipping To</div>
+                  <div style={{ fontWeight: 600, fontSize: 16 }}>{data.ship_name}</div>
+                  <div style={{ color: "#334155", marginTop: 4, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                      {data.ship_address}
+                  </div>
+              </div>
+
           </div>
       </div>
     </div>
