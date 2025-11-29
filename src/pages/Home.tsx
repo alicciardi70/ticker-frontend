@@ -1,4 +1,4 @@
-// src/pages/Home.tsx (DROP-IN REPLACEMENT)
+// src/pages/Home.tsx (DROP-IN REPLACEMENT WITH FONT FIX)
 
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -18,22 +18,18 @@ type Product = {
 export default function Home() {
   const nav = useNavigate();
   
-  // 🚨 FIX 1: Use state to hold the token so the component can re-render
   const [token, setToken] = useState(typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
   const [items, setItems] = useState<Product[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🚨 FIX 2: Callback function to update the token state after successful login
   function handleLoginSuccess() {
-    // Read the newly saved token from local storage and update state
     setToken(localStorage.getItem("token"));
   }
 
   function logout() {
     localStorage.removeItem("token");
-    // 🚨 FIX 3: Clear the state token as well
     setToken(null); 
     nav("/", { replace: true });
   }
@@ -58,6 +54,8 @@ export default function Home() {
         display: "grid",
         gridTemplateColumns: "minmax(280px, 360px) 1fr",
         gap: 24,
+        // 🚨 FONT FIX APPLIED HERE: Sets the modern font stack for the entire component
+        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
       }}
     >
       {/* Left: Login or Signed-in panel */}
@@ -111,7 +109,6 @@ export default function Home() {
             <p style={{ color: "#6b7280", marginBottom: 16 }}>
               Use your email and password to access devices and orders.
             </p>
-            {/* 🚨 FIX 4: Pass the success callback function to the Login component */}
             <Login onLoginSuccess={handleLoginSuccess} />
           </div>
         )}

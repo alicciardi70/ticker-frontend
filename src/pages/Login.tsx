@@ -1,4 +1,4 @@
-// src/pages/Login.tsx (DROP-IN REPLACEMENT)
+// src/pages/Login.tsx (DROP-IN REPLACEMENT WITH FONT FIX)
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -20,16 +20,18 @@ const styles = {
 
     // Card and Form container
     wrapper: {
+        // FIX: Removed "60px auto" margin because this component is rendered inside a grid layout on Home.tsx
+        // If rendered standalone, the parent component handles centering.
         maxWidth: 420,
-        margin: "60px auto", // Centered with top margin
+        margin: "0", 
         background: "#fff",
         border: "1px solid #e5e7eb",
         borderRadius: 12,
-        padding: 24, // Increased padding slightly
+        padding: 24, 
         boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
-        // APPLY MODERN FONT TO THE WHOLE CARD
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-        color: "#0f172a", // Text color
+        // 🚨 FONT FIX: Use a more robust, modern system font stack
+        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+        color: "#0f172a", 
     },
     // Standard button primary
     button: {
@@ -37,7 +39,7 @@ const styles = {
         borderRadius: 8,
         background: "#111827",
         color: "#fff",
-        border: "none", // Remove border for clean look
+        border: "none",
         cursor: "pointer",
         width: "100%",
         fontWeight: 600,
@@ -53,7 +55,7 @@ const styles = {
         marginBottom: 10,
         outline: "none",
         transition: "border-color 0.15s",
-        fontSize: 15, // Match size to button/links
+        fontSize: 15,
     },
     // Error styling
     error: {
@@ -74,7 +76,7 @@ const styles = {
     }
 };
 
-export default function Login({ onLoginSuccess }: LoginProps) { // 🚨 FIX 1: Accept the prop
+export default function Login({ onLoginSuccess }: LoginProps) { 
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -105,7 +107,6 @@ export default function Login({ onLoginSuccess }: LoginProps) { // 🚨 FIX 1: A
       const data = await res.json();
       localStorage.setItem("token", data.access_token);
       
-      // 🚨 FIX 2: Call the callback if it was passed (i.e., when rendering on the Home page)
       if (onLoginSuccess) {
           onLoginSuccess();
       }
