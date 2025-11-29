@@ -1,10 +1,10 @@
-// src/pages/Home.tsx (DROP-IN REPLACEMENT WITH FONT FIX)
+// src/pages/Home.tsx (FINALIZED DROP-IN REPLACEMENT with Login Link Fix)
 
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import Login from "./Login";
 import { API_BASE } from "../lib/api";
 
+// --- TYPE DEFINITIONS ---
 type Product = {
   id: string;
   slug: string;
@@ -15,115 +15,97 @@ type Product = {
   created_at: string;
 };
 
+// Assuming the Devices structure based on your other models
+type Device = {
+    id: string;
+    name: string;
+    controller_id: string;
+    firmware_version: string | null;
+    created_at: string;
+};
+// ------------------------
+
+
 export default function Home() {
   const nav = useNavigate();
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const isUserLoggedIn = !!token;
   
-  const [token, setToken] = useState(typeof window !== "undefined" ? localStorage.getItem("token") : null);
+  // State for Products
+  const [products, setProducts] = useState<Product[] | null>(null);
+  const [productsErr, setProductsErr] = useState<string | null>(null);
+  const [productsLoading, setProductsLoading] = useState(true);
+  
+  // State for Devices
+  const [devices, setDevices] = useState<Device[] | null>(null);
+  const [devicesErr, setDevicesErr] = useState<string | null>(null);
+  const [devicesLoading, setDevicesLoading] = useState(isUserLoggedIn);
 
-  const [items, setItems] = useState<Product[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  function handleLoginSuccess() {
-    setToken(localStorage.getItem("token"));
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    setToken(null); 
-    nav("/", { replace: true });
-  }
-
+  // 1. Fetch Products (Unauthenticated)
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setErr(null);
+    setProductsLoading(true);
+    setProductsErr(null);
 
     fetch(`${API_BASE}/products`)
       .then((r) => (r.ok ? r.json() : Promise.reject(`${r.status} ${r.statusText}`)))
-      .then((data: Product[]) => !cancelled && setItems(data))
-      .catch((e) => !cancelled && setErr(String(e)))
-      .finally(() => !cancelled && setLoading(false));
+      .then((data: Product[]) => !cancelled && setProducts(data))
+      .catch((e) => !cancelled && setProductsErr(String(e)))
+      .finally(() => !cancelled && setProductsLoading(false));
 
     return () => { cancelled = true; };
   }, []);
 
+  // 2. Fetch Devices (Authenticated - Only runs if user is logged in)
+  useEffect(() => {
+    if (!isUserLoggedIn) return;
+
+    let cancelled = false;
+    setDevicesLoading(true);
+    setDevicesErr(null);
+
+    fetch(`${API_BASE}/devices/`, {
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        }
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(`${r.status} ${r.statusText}`)))
+      .then((data: Device[]) => !cancelled && setDevices(data))
+      .catch((e) => !cancelled && setDevicesErr(String(e)))
+      .finally(() => !cancelled && setDevicesLoading(false));
+
+    return () => { cancelled = true; };
+  }, [isUserLoggedIn, token]); // Rerun only if login status changes
+
+
   return (
     <div
       style={{
+        maxWidth: 1100, // Center content
+        margin: "0 auto",
+        padding: "24px 20px",
         display: "grid",
-        gridTemplateColumns: "minmax(280px, 360px) 1fr",
-        gap: 24,
-        // 🚨 FONT FIX APPLIED HERE: Sets the modern font stack for the entire component
+        gap: 40, // Space between Products and Devices sections
+        // FONT FIX APPLIED HERE for consistency
         fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
       }}
     >
-      {/* Left: Login or Signed-in panel */}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          padding: 16,
-        }}
-      >
-        {token ? (
-          <div>
-            <h2 style={{ marginBottom: 8 }}>Welcome back 👋</h2>
-            <p style={{ color: "#6b7280", marginBottom: 16 }}>
-              You’re signed in. Manage your devices or continue shopping.
-            </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Link to="/devices">
-                <button
-                  style={{
-                    border: "1px solid #111",
-                    background: "#111",
-                    color: "#fff",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                  }}
-                >
-                  Go to Devices
-                </button>
-              </Link>
-              <button
-                onClick={logout}
-                style={{
-                  border: "1px solid #e11d48",
-                  background: "#fff",
-                  color: "#e11d48",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                }}
-              >
-                Log out
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <h2 style={{ marginBottom: 8 }}>Sign in</h2>
-            <p style={{ color: "#6b7280", marginBottom: 16 }}>
-              Use your email and password to access devices and orders.
-            </p>
-            <Login onLoginSuccess={handleLoginSuccess} />
-          </div>
-        )}
-      </div>
-
-      {/* Right: Products grid */}
-      <div>
-        <h2 style={{ marginBottom: 12 }}>Products</h2>
-        {loading && <div>Loading products…</div>}
-        {err && (
+      {/* ---------------------------------------------------- */}
+      {/* 1. PRODUCTS SECTION (Top Content)                    */}
+      {/* ---------------------------------------------------- */}
+      <section>
+        <h2 style={{ marginBottom: 16 }}>Available Products</h2>
+        
+        {productsLoading && <div>Loading products…</div>}
+        {productsErr && (
           <div style={{ color: "crimson", marginBottom: 12 }}>
-            Failed to load products: {err}
+            Failed to load products: {productsErr}
           </div>
         )}
-        {!loading && !err && (
+
+        {!productsLoading && !productsErr && (
           <div
             style={{
               display: "grid",
@@ -131,7 +113,7 @@ export default function Home() {
               gap: 16,
             }}
           >
-            {(items ?? []).map((p) => (
+            {(products ?? []).map((p) => (
               <div
                 key={p.id}
                 style={{
@@ -181,7 +163,58 @@ export default function Home() {
             ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ---------------------------------------------------- */}
+      {/* 2. DEVICES SECTION (Bottom Content)                   */}
+      {/* ---------------------------------------------------- */}
+      <section>
+        <h2 style={{ marginBottom: 16 }}>My Devices</h2>
+
+        {!isUserLoggedIn && (
+            <div style={{ padding: 20, border: "1px solid #ffedd5", borderRadius: 8, background: "#fff7ed", color: "#9a3412" }}>
+                {/* 🚨 FIX: Replaced bolded text with a clickable Link */}
+                Please <Link to="/login" style={{ textDecoration: 'underline', color: '#9a3412', fontWeight: 700 }}>Log In</Link> to view and manage your connected Ticker devices.
+            </div>
+        )}
+
+        {isUserLoggedIn && devicesLoading && <div>Loading devices…</div>}
+        
+        {isUserLoggedIn && devicesErr && (
+            <div style={{ color: "crimson", marginBottom: 12 }}>
+                Failed to load devices: {devicesErr}
+            </div>
+        )}
+
+        {isUserLoggedIn && !devicesLoading && !devicesErr && (
+            (devices && devices.length > 0) ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px,1fr))", gap: 16 }}>
+                    {devices.map((d) => (
+                        <div key={d.id} style={{ 
+                            padding: 16, 
+                            border: "1px solid #e5e7eb", 
+                            borderRadius: 8, 
+                            background: "#fff"
+                        }}>
+                            <div style={{ fontWeight: 700, fontSize: 18 }}>{d.name}</div>
+                            <div style={{ color: "#6b7280", fontSize: 12 }}>Device ID: {d.controller_id}</div>
+                            
+                            <Link 
+                                to={`/devices/${d.id}/config`} 
+                                style={{ marginTop: 10, display: 'inline-block', color: '#111827', fontWeight: 600 }}>
+                                Configure Device →
+                            </Link>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div style={{ padding: 20, border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", color: "#1e40af" }}>
+                    You have no devices registered yet.
+                    <Link to="/devices" style={{ marginLeft: 8, fontWeight: 600 }}>Add your first device.</Link>
+                </div>
+            )
+        )}
+      </section>
     </div>
   );
 }

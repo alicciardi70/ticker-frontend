@@ -16,6 +16,7 @@ import Orders from "./pages/Orders";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Products from "./pages/Products";
+import DeviceConfig from "./pages/DeviceConfig";
 
 
 export default function App() {
@@ -31,7 +32,7 @@ export default function App() {
           <Route path="/devices" element={<Devices />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/account" element={<Account />} />
-          
+          <Route path="/devices/:deviceId/config" element={<DeviceConfig />} />
           <Route path="/products/:id" element={<ProductDetail />} /> 
           
           <Route path="/checkout/:id" element={<Checkout />} />
