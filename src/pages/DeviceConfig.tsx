@@ -1,9 +1,9 @@
-// src/pages/DeviceConfig.tsx (DROP-IN REPLACEMENT with FINAL LABELS)
+// src/pages/DeviceConfig.tsx
 
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import "./Devices.css"; // Reuse the existing styles
+import "./Devices.css";
 
 type Device = {
   id: string;
@@ -48,6 +48,7 @@ export default function DeviceConfig() {
   const [err, setErr] = useState<string | null>(null);
 
   // State for the EDIT form
+  const [editName, setEditName] = useState(""); // <--- NEW: State for Name
   const [editTimezoneId, setEditTimezoneId] = useState<string>("");
   const [editRenderType, setEditRenderType] = useState<Device["render_type"]>("H");
   const [editRenderSpeed, setEditRenderSpeed] = useState<number>(3);
@@ -75,6 +76,7 @@ export default function DeviceConfig() {
       
       // Update the main device state and pre-fill the form fields
       setDevice(data);
+      setEditName(data.name); // <--- NEW: Pre-fill name
       setEditTimezoneId(data.timezone_id || (timezones[0]?.id ?? ""));
       setEditRenderType(data.render_type || "H");
       setEditRenderSpeed(typeof data.render_speed === "number" ? data.render_speed : 3);
@@ -131,9 +133,15 @@ export default function DeviceConfig() {
       setErr("Please select a timezone.");
       return;
     }
+    if (!editName.trim()) {
+        setErr("Device name cannot be empty.");
+        return;
+    }
+
     setSaving(true);
     try {
       const body: any = {
+        name: editName, // <--- NEW: Send updated name
         firmware_version: device.firmware_version ?? null,
         timezone_id: editTimezoneId,
         render_type: editRenderType ?? "H",
@@ -184,7 +192,6 @@ export default function DeviceConfig() {
                 <span className="dv-sep">•</span> Created: {new Date(device.created_at || '').toLocaleDateString()}
             </div>
             <div className="dv-row-meta" style={{ marginTop: 4 }}>
-                {/* 🚨 RENAMED: Current TZ to Timezone */}
                 Timezone: <strong>{currentTz?.tz_label || 'None'}</strong>
                 <span className="dv-sep">•</span> Animation: <strong>{RENDER_TYPES.find(x => x.value === device.render_type)?.label || 'H'}</strong>
                 <span className="dv-sep">•</span> Speed: <strong>{device.render_speed ?? 3}</strong>
@@ -198,8 +205,21 @@ export default function DeviceConfig() {
         {err && <div className="dv-alert">{err}</div>}
 
         <form onSubmit={saveDeviceSettings}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 24 }}>
+            {/* Changed to 2 columns to fit Name, TZ, Type, Speed nicely */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 
+                {/* NEW: Device Name Input */}
+                <div className="dv-field">
+                    <label>Device Name (Friendly Name)</label>
+                    <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Living Room Ticker"
+                        required
+                    />
+                </div>
+
                 <div className="dv-field">
                     <label>Timezone</label>
                     <select
