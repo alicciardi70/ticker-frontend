@@ -47,20 +47,31 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div style={{ padding: 24 }}>Loading…</div>;
+  // Apply font family to loading/error states as well
+  const containerStyle = {
+    padding: 24,
+    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
+  };
+
+  if (loading) return <div style={containerStyle}>Loading…</div>;
   if (err)
     return (
-      <div style={{ padding: 24 }}>
+      <div style={containerStyle}>
         <p style={{ color: "crimson", whiteSpace: "pre-wrap" }}>Error: {err}</p>
-        <Link to="/">Back</Link>
+        <Link to="/" style={{ color: "#2563eb", textDecoration: "none" }}>← Back</Link>
       </div>
     );
-  if (!p) return <div style={{ padding: 24 }}>Not found</div>;
+  if (!p) return <div style={containerStyle}>Not found</div>;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+    <div style={{ 
+      minHeight: "100vh", 
+      background: "#f8fafc",
+      // 🚨 FONT FIX APPLIED HERE
+      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
+    }}>
       <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
-        <Link to="/">← Back</Link>
+        <Link to="/" style={{ color: "#64748b", textDecoration: "none", fontWeight: 500 }}>← Back</Link>
       </div>
       <div
         style={{
@@ -82,28 +93,30 @@ export default function ProductDetail() {
           )}
         </div>
         <div>
-          <h1 style={{ fontSize: 24, marginBottom: 8 }}>{p.name}</h1>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>
+          <h1 style={{ fontSize: 24, marginBottom: 8, fontWeight: 800, letterSpacing: "-0.5px" }}>{p.name}</h1>
+          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 20 }}>
             ${(p.price_cents / 100).toFixed(2)}
           </div>
-          <p style={{ color: "#475569", marginBottom: 16 }}>{p.short}</p>
+          <p style={{ color: "#475569", marginBottom: 24, lineHeight: 1.6 }}>{p.short}</p>
           <button
             onClick={() => nav(`/checkout/${p.slug ?? p.id}`)}
             style={{
               border: "1px solid #111",
               background: "#111",
               color: "#fff",
-              padding: "10px 16px",
+              padding: "12px 24px",
               borderRadius: 8,
+              fontWeight: 600,
+              fontSize: 16,
+              cursor: "pointer"
             }}
           >
-            Buy now
+            Buy Now
           </button>
         </div>
       </div>
     </div>
   );
 }
-
 
 
