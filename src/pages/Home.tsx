@@ -15,7 +15,6 @@ type Product = {
   created_at: string;
 };
 
-// Assuming the Devices structure based on your other models
 type Device = {
     id: string;
     name: string;
@@ -28,7 +27,9 @@ type Device = {
 
 export default function Home() {
   const nav = useNavigate();
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  
+  // FIX 1: Use State for the token so we can clear it dynamically if it expires
+  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const isUserLoggedIn = !!token;
   
   // State for Products
@@ -59,7 +60,10 @@ export default function Home() {
 
   // 2. Fetch Devices (Authenticated - Only runs if user is logged in)
   useEffect(() => {
-    if (!isUserLoggedIn) return;
+    if (!isUserLoggedIn) {
+        setDevicesLoading(false);
+        return;
+    }
 
     let cancelled = false;
     setDevicesLoading(true);
@@ -71,13 +75,28 @@ export default function Home() {
             "Content-Type": "application/json"
         }
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject(`${r.status} ${r.statusText}`)))
-      .then((data: Device[]) => !cancelled && setDevices(data))
+      .then(async (r) => {
+        // FIX 2: Handle 401 explicitly. If token is bad, logout immediately.
+        if (r.status === 401) {
+            localStorage.removeItem("token");
+            if (!cancelled) {
+                setToken(null); // This triggers re-render -> switches UI to "Please Log In"
+                setDevicesLoading(false);
+            }
+            return null; // Stop processing
+        }
+        
+        if (r.ok) return r.json();
+        return Promise.reject(`${r.status} ${r.statusText}`);
+      })
+      .then((data: Device[] | null) => {
+          if (!cancelled && data) setDevices(data);
+      })
       .catch((e) => !cancelled && setDevicesErr(String(e)))
       .finally(() => !cancelled && setDevicesLoading(false));
 
     return () => { cancelled = true; };
-  }, [isUserLoggedIn, token]); // Rerun only if login status changes
+  }, [isUserLoggedIn, token]); 
 
 
   return (
@@ -87,8 +106,7 @@ export default function Home() {
         margin: "0 auto",
         padding: "24px 20px",
         display: "grid",
-        gap: 40, // Space between Products and Devices sections
-        // FONT FIX APPLIED HERE for consistency
+        gap: 40, 
         fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
       }}
     >
@@ -145,7 +163,6 @@ export default function Home() {
                   ${(p.price_cents / 100).toFixed(2)}
                 </div>
                 
-                {/* 🚨 FIX: Changed path from /product/ to /products/ to match App.tsx */}
                 <Link to={`/products/${encodeURIComponent(p.slug || p.id)}`}>
                   <button
                     style={{
