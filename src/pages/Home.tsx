@@ -1,4 +1,4 @@
-// src/pages/Home.tsx (FINALIZED DROP-IN REPLACEMENT with Login Link Fix)
+// src/pages/Home.tsx
 
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -144,7 +144,9 @@ export default function Home() {
                 <div style={{ fontWeight: 600 }}>
                   ${(p.price_cents / 100).toFixed(2)}
                 </div>
-                <Link to={`/product/${encodeURIComponent(p.slug || p.id)}`}>
+                
+                {/* 🚨 FIX: Changed path from /product/ to /products/ to match App.tsx */}
+                <Link to={`/products/${encodeURIComponent(p.slug || p.id)}`}>
                   <button
                     style={{
                       border: "1px solid #111",
@@ -173,7 +175,6 @@ export default function Home() {
 
         {!isUserLoggedIn && (
             <div style={{ padding: 20, border: "1px solid #ffedd5", borderRadius: 8, background: "#fff7ed", color: "#9a3412" }}>
-                {/* 🚨 FIX: Replaced bolded text with a clickable Link */}
                 Please <Link to="/login" style={{ textDecoration: 'underline', color: '#9a3412', fontWeight: 700 }}>Log In</Link> to view and manage your connected Ticker devices.
             </div>
         )}
