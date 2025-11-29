@@ -1,3 +1,4 @@
+// src/pages/Register.tsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE } from "../lib/api";
@@ -26,8 +27,6 @@ export default function Register() {
         const msg = await res.text().catch(() => "");
         throw new Error(msg || `Register failed (${res.status})`);
       }
-      // optional: read response if you want
-      // const data = await res.json();
       nav("/login", { replace: true });
     } catch (e: any) {
       setErr(e?.message ?? "Register failed");
@@ -37,44 +36,60 @@ export default function Register() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "40px auto", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-      <h1 style={{ marginBottom: 12 }}>Create your account</h1>
+    <div style={{ 
+      maxWidth: 420, 
+      margin: "40px auto", 
+      background: "#fff", 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 32, // Increased padding slightly for better spacing
+      // 🚨 FONT UPGRADE
+      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+      color: "#0f172a"
+    }}>
+      <h1 style={{ marginBottom: 24, fontSize: 24, fontWeight: 800 }}>Create your account</h1>
 
       {err && (
-        <div style={{ color: "#b91c1c", background: "#fee2e2", border: "1px solid #fecaca", padding: 10, borderRadius: 8, marginBottom: 10 }}>
+        <div style={{ color: "#b91c1c", background: "#fee2e2", border: "1px solid #fecaca", padding: 12, borderRadius: 8, marginBottom: 20, fontSize: 14 }}>
           {err}
         </div>
       )}
 
       <form onSubmit={submit}>
-        <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>Email</label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          type="email"
-          style={{ width: "100%", padding: "10px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 10 }}
-        />
+        <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Email</label>
+            <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            type="email"
+            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 16 }}
+            />
+        </div>
 
-        <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>Password</label>
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          type="password"
-          style={{ width: "100%", padding: "10px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 16 }}
-        />
+        <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Password</label>
+            <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            type="password"
+            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 16 }}
+            />
+        </div>
 
         <button
           disabled={saving}
           style={{
-            padding: "10px 16px",
+            padding: "12px",
             borderRadius: 8,
             background: "#111827",
             color: "#fff",
             border: "1px solid #111827",
             cursor: "pointer",
             width: "100%",
+            fontSize: 16,
+            fontWeight: 600,
             opacity: saving ? 0.7 : 1,
           }}
         >
@@ -82,8 +97,8 @@ export default function Register() {
         </button>
       </form>
 
-      <div style={{ marginTop: 12, textAlign: "center" }}>
-        Already have an account? <Link to="/login">Log in</Link>
+      <div style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#64748b" }}>
+        Already have an account? <Link to="/login" style={{ color: "#2563eb", fontWeight: 600, textDecoration: "none" }}>Log in</Link>
       </div>
     </div>
   );
