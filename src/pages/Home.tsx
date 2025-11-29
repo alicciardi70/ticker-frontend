@@ -1,4 +1,5 @@
-// src/pages/Home.tsx
+// src/pages/Home.tsx (DROP-IN REPLACEMENT)
+
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Login from "./Login";
@@ -16,14 +17,24 @@ type Product = {
 
 export default function Home() {
   const nav = useNavigate();
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  
+  // 🚨 FIX 1: Use state to hold the token so the component can re-render
+  const [token, setToken] = useState(typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
   const [items, setItems] = useState<Product[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 🚨 FIX 2: Callback function to update the token state after successful login
+  function handleLoginSuccess() {
+    // Read the newly saved token from local storage and update state
+    setToken(localStorage.getItem("token"));
+  }
+
   function logout() {
     localStorage.removeItem("token");
+    // 🚨 FIX 3: Clear the state token as well
+    setToken(null); 
     nav("/", { replace: true });
   }
 
@@ -100,7 +111,8 @@ export default function Home() {
             <p style={{ color: "#6b7280", marginBottom: 16 }}>
               Use your email and password to access devices and orders.
             </p>
-            <Login />
+            {/* 🚨 FIX 4: Pass the success callback function to the Login component */}
+            <Login onLoginSuccess={handleLoginSuccess} />
           </div>
         )}
       </div>

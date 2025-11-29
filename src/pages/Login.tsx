@@ -1,7 +1,13 @@
-// src/pages/Login.tsx
+// src/pages/Login.tsx (DROP-IN REPLACEMENT)
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
+
+// Define props interface for the component
+interface LoginProps {
+    onLoginSuccess?: () => void;
+}
 
 // Styles to match the rest of the modern app
 const styles = {
@@ -68,7 +74,7 @@ const styles = {
     }
 };
 
-export default function Login() {
+export default function Login({ onLoginSuccess }: LoginProps) { // 🚨 FIX 1: Accept the prop
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -98,6 +104,12 @@ export default function Login() {
 
       const data = await res.json();
       localStorage.setItem("token", data.access_token);
+      
+      // 🚨 FIX 2: Call the callback if it was passed (i.e., when rendering on the Home page)
+      if (onLoginSuccess) {
+          onLoginSuccess();
+      }
+      
       nav("/devices", { replace: true });
     } catch (e: any) {
       setErr(e?.message ?? "Login failed");
