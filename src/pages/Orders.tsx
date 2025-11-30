@@ -1,14 +1,15 @@
+// src/pages/Orders.tsx
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE } from "../lib/api";
 
-// Matching schemas.OrderStatusRow from backend
 type OrderStatusRow = {
     order_id: string;
+    friendly_id?: string; // <--- NEW FIELD
     email: string;
     total_cents: number;
     created_at: string;
-    derived_status: string; // 'paid', 'shipped', etc.
+    derived_status: string;
 };
 
 function authHeaders() {
@@ -54,7 +55,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    textDecoration: "none", // For the Link
+    textDecoration: "none",
     color: "inherit",
     transition: "box-shadow 0.2s",
   }
@@ -129,7 +130,9 @@ export default function Orders() {
             <Link key={order.order_id} to={`/order/${order.order_id}`} style={styles.orderItem}>
                 <div>
                     <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 10 }}>
-                        Order #{order.order_id.slice(0, 8)}...
+                        {/* FIX: Use Friendly ID if present, otherwise slice UUID */}
+                        Order #{order.friendly_id || order.order_id.slice(0, 8).toUpperCase()}
+                        
                         <span style={{ 
                             fontSize: 12, 
                             background: order.derived_status === 'paid' ? '#dcfce7' : '#f1f5f9', 

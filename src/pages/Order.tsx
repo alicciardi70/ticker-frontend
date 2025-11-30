@@ -1,3 +1,4 @@
+// src/pages/Order.tsx
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
@@ -10,6 +11,7 @@ type OrderItem = {
 
 type OrderStatus = {
   order_id: string;
+  friendly_id?: string; // <--- NEW FIELD
   derived_status: string;
   total_cents: number;
   subtotal_cents: number;
@@ -78,7 +80,10 @@ export default function OrderPage() {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32, fontSize: 14 }}>
                   <div>
                       <div style={{ color: "#64748b", marginBottom: 4 }}>Order Number</div>
-                      <div style={{ fontFamily: "monospace", fontWeight: 600 }}>{data.order_id.split('-')[0]}...</div>
+                      {/* FIX: Show Friendly ID if available, else fallback to UUID segment */}
+                      <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 16 }}>
+                          #{data.friendly_id || data.order_id.slice(0, 8).toUpperCase()}
+                      </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                       <div style={{ color: "#64748b", marginBottom: 4 }}>Status</div>
