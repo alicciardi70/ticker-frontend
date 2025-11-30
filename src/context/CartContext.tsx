@@ -1,8 +1,6 @@
-// src/context/CartContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { API_BASE } from "../lib/api";
 
-// Helper to get/set Guest ID
 function getGuestId() {
   let id = localStorage.getItem("ticker_guest_id");
   if (!id) {
@@ -13,7 +11,7 @@ function getGuestId() {
 }
 
 export type CartItem = {
-  id: string; // The CartItem ID (UUID)
+  id: string; 
   product_id: string;
   qty: number;
   product: {
@@ -26,6 +24,7 @@ export type CartItem = {
 type CartContextType = {
   items: CartItem[];
   addToCart: (productId: string, qty?: number) => Promise<void>;
+  updateQty: (productId: string, qty: number) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
   refreshCart: () => void;
   cartCount: number;
@@ -38,7 +37,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // Trigger to force re-fetch
   const [tick, setTick] = useState(0); 
 
   useEffect(() => {
@@ -65,19 +63,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const refreshCart = () => setTick(t => t + 1);
 
-  const addToCart = async (productId: string, qty = 1) => {
-    setIsLoading(true);
+  // --- API HELPERS ---
+  const getHeaders = () => {
     const token = localStorage.getItem("token");
-    const guestId = getGuestId();
-    
     const headers: any = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    else headers["X-Guest-ID"] = guestId;
+    else headers["X-Guest-ID"] = getGuestId();
+    return headers;
+  };
 
+  const addToCart = async (productId: string, qty = 1) => {
+    setIsLoading(true);
     try {
       await fetch(`${API_BASE}/cart/items`, {
         method: "POST",
-        headers,
+        headers: getHeaders(),
         body: JSON.stringify({ product_id: productId, qty }),
       });
       refreshCart();
@@ -86,15 +86,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (productId: string) => {
-    const token = localStorage.getItem("token");
-    const guestId = getGuestId();
+  const updateQty = async (productId: string, qty: number) => {
+    // Optimistic UI update
+    setItems(prev => prev.map(i => i.product_id === productId ? { ...i, qty } : i));
     
-    const headers: any = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    else headers["X-Guest-ID"] = guestId;
+    await fetch(`${API_BASE}/cart/items/${productId}`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify({ qty }),
+    });
+    refreshCart(); // Sync with server to be sure
+  };
 
-    await fetch(`${API_BASE}/cart/items/${productId}`, { method: "DELETE", headers });
+  const removeFromCart = async (productId: string) => {
+    setItems(prev => prev.filter(i => i.product_id !== productId));
+    await fetch(`${API_BASE}/cart/items/${productId}`, { method: "DELETE", headers: getHeaders() });
     refreshCart();
   };
 
@@ -102,7 +108,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cartTotal = items.reduce((sum, i) => sum + (i.product.price_cents * i.qty), 0);
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, refreshCart, cartCount, cartTotal, isLoading }}>
+    <CartContext.Provider value={{ items, addToCart, updateQty, removeFromCart, refreshCart, cartCount, cartTotal, isLoading }}>
       {children}
     </CartContext.Provider>
   );

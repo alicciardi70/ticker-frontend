@@ -17,6 +17,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Products from "./pages/Products";
 import DeviceConfig from "./pages/DeviceConfig";
+import Cart from "./pages/Cart";
 
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
           {/* --------------------------------- */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+	  <Route path="/cart" element={<Cart />} />
           <Route path="/devices/:deviceId/teams" element={<DeviceTeams />} />
         </Route>
       </Routes>

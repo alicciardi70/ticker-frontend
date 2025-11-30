@@ -1,5 +1,7 @@
+// src/components/Nav.tsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useCart } from "../context/CartContext"; // <--- IMPORT HOOK
 
 // Define dark theme colors
 const colors = {
@@ -10,15 +12,12 @@ const colors = {
   linkActiveBg: "#1f2937",
   buttonBg: "#1f2937",
   menuOverlayBg: "#111827",
-  // Modern Font Stack
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 };
 
 // Helper component for individual links
 function NavLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick?: () => void }) {
   const { pathname } = useLocation();
-  
-  // FIX #2: Simplified Active Logic
   const isActive = pathname === to || (to !== "/" && pathname.startsWith(to));
   
   return (
@@ -32,7 +31,9 @@ function NavLink({ to, children, onClick }: { to: string; children: React.ReactN
         color: isActive ? colors.textActive : colors.text,
         background: isActive ? colors.linkActiveBg : "transparent",
         fontWeight: isActive ? 600 : 400,
-        display: "block",
+        display: "flex", // Changed to flex for badges
+        alignItems: "center",
+        gap: 8,
         transition: "all 0.2s ease-in-out",
         fontFamily: colors.fontFamily,
       }}
@@ -46,10 +47,11 @@ export default function Nav() {
   const [authed, setAuthed] = useState<boolean>(!!localStorage.getItem("token"));
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [menuOpen, setMenuOpen] = useState(false);
+  
   const nav = useNavigate();
-  const location = useLocation(); // Hook into route changes
+  const location = useLocation();
+  const { cartCount } = useCart(); // <--- GET CART COUNT
 
-  // Handle Resize Detection
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -59,7 +61,6 @@ export default function Nav() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // FIX #1: Better Auth Check
   useEffect(() => {
     setAuthed(!!localStorage.getItem("token"));
   }, [location]);
@@ -76,6 +77,27 @@ export default function Nav() {
     <>
       <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
       <NavLink to="/products" onClick={() => setMenuOpen(false)}>Products</NavLink>
+      
+      {/* CART LINK WITH BADGE */}
+      <NavLink to="/cart" onClick={() => setMenuOpen(false)}>
+        Cart
+        {cartCount > 0 && (
+          <span style={{ 
+            background: "#ef4444", // Red badge
+            color: "white", 
+            fontSize: 11, 
+            fontWeight: 700, 
+            padding: "2px 6px", 
+            borderRadius: 99,
+            minWidth: 18,
+            textAlign: 'center',
+            lineHeight: 1
+          }}>
+            {cartCount}
+          </span>
+        )}
+      </NavLink>
+
       <NavLink to="/devices" onClick={() => setMenuOpen(false)}>My Devices</NavLink>
       <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
       <NavLink to="/account" onClick={() => setMenuOpen(false)}>My Account</NavLink>
@@ -89,7 +111,7 @@ export default function Nav() {
           textAlign: "left",
           borderRadius: 8, 
           border: "none", 
-          background: "transparent", // <--- CHANGED: Now matches navbar background (black)
+          background: "transparent",
           color: colors.text,
           cursor: "pointer",
           fontWeight: 600,
@@ -140,7 +162,7 @@ export default function Nav() {
           </nav>
         )}
 
-        {/* MOBILE HAMBURGER BUTTON */}
+        {/* MOBILE HAMBURGER */}
         {isMobile && (
           <button 
             onClick={() => setMenuOpen(!menuOpen)}
@@ -154,23 +176,26 @@ export default function Nav() {
               justifyContent: "center"
             }}
           >
-            {menuOpen ? (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            ) : (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            )}
+            {/* Simple Hamburger Icon */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {menuOpen ? (
+                <>
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </>
+              ) : (
+                <>
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </>
+              )}
+            </svg>
           </button>
         )}
       </div>
 
-      {/* MOBILE MENU DROPDOWN */}
+      {/* MOBILE MENU */}
       {isMobile && menuOpen && (
         <div style={{
           position: "absolute",
