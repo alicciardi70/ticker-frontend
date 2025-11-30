@@ -2,6 +2,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
+import { useCart } from "../context/CartContext"; // <--- NEW IMPORT
 
 type Product = {
   id: string;
@@ -16,9 +17,12 @@ type Product = {
 export default function ProductDetail() {
   const { id } = useParams(); // slug or UUID
   const nav = useNavigate();
+  const { addToCart } = useCart(); // <--- NEW HOOK
+  
   const [p, setP] = useState<Product | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false); // <--- UI State for feedback
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +51,21 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Handler for adding to cart
+  const handleAddToCart = async () => {
+      if (!p) return;
+      setAdding(true);
+      try {
+        await addToCart(p.id); 
+        alert("Item added to cart!"); // Simple feedback for now
+      } catch (e) {
+        console.error(e);
+        alert("Failed to add item.");
+      } finally {
+        setAdding(false);
+      }
+  };
+
   // Apply font family to loading/error states as well
   const containerStyle = {
     padding: 24,
@@ -67,7 +86,6 @@ export default function ProductDetail() {
     <div style={{ 
       minHeight: "100vh", 
       background: "#f8fafc",
-      // 🚨 FONT FIX APPLIED HERE
       fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
     }}>
       <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
@@ -79,7 +97,7 @@ export default function ProductDetail() {
           margin: "0 auto",
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 24,
+          gap: 40, // Increased gap slightly
           padding: 24,
         }}
       >
@@ -97,26 +115,51 @@ export default function ProductDetail() {
           <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 20 }}>
             ${(p.price_cents / 100).toFixed(2)}
           </div>
-          <p style={{ color: "#475569", marginBottom: 24, lineHeight: 1.6 }}>{p.short}</p>
-          <button
-            onClick={() => nav(`/checkout/${p.slug ?? p.id}`)}
-            style={{
-              border: "1px solid #111",
-              background: "#111",
-              color: "#fff",
-              padding: "12px 24px",
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: "pointer"
-            }}
-          >
-            Buy Now
-          </button>
+          <p style={{ color: "#475569", marginBottom: 32, lineHeight: 1.6 }}>{p.short}</p>
+          
+          {/* TWO BUTTON LAYOUT */}
+          <div style={{ display: 'flex', gap: 12 }}>
+              {/* Primary: Buy Now (Direct Checkout) */}
+              <button
+                onClick={() => nav(`/checkout/${p.slug ?? p.id}`)}
+                style={{
+                  flex: 1,
+                  border: "1px solid #111",
+                  background: "#111",
+                  color: "#fff",
+                  padding: "12px 24px",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 16,
+                  cursor: "pointer"
+                }}
+              >
+                Buy Now
+              </button>
+
+              {/* Secondary: Add to Cart (Server Cart) */}
+              <button
+                onClick={handleAddToCart}
+                disabled={adding}
+                style={{
+                  flex: 1,
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                  color: "#111",
+                  padding: "12px 24px",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 16,
+                  cursor: "pointer",
+                  opacity: adding ? 0.7 : 1
+                }}
+              >
+                {adding ? "Adding..." : "Add to Cart"}
+              </button>
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
-
-
