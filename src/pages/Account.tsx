@@ -133,10 +133,17 @@ export default function Account() {
             <span style={{ color: "#64748b" }}>Email</span>
             <span style={{ fontWeight: 500 }}>{loading ? 'Loading...' : userEmail}</span> 
           </div>
-          <div style={{ ...styles.row, borderBottom: "none" }}>
-            <span style={{ color: "#64748b" }}>Password</span>
-            <span style={{ color: "#2563eb", cursor: "pointer", fontWeight: 500 }}>Change</span>
-          </div>
+	<div style={{ ...styles.row, borderBottom: "none" }}>
+	  <span style={{ color: "#64748b" }}>Password</span>
+	  <span 
+	    onClick={() => navigate("/change-password")} 
+	    style={{ color: "#2563eb", cursor: "pointer", fontWeight: 500 }}
+	  >
+	    Change
+	  </span>
+	</div>
+
+
         </div>
       </div>
 

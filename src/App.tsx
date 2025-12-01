@@ -18,7 +18,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Products from "./pages/Products";
 import DeviceConfig from "./pages/DeviceConfig";
 import Cart from "./pages/Cart";
-
+import ChangePassword from "./pages/ChangePassword";
 
 export default function App() {
   return (
@@ -38,7 +38,7 @@ export default function App() {
           
           <Route path="/checkout/:id" element={<Checkout />} />
           <Route path="/order/:id" element={<OrderPage />} />
-
+	  <Route path="/change-password" element={<ChangePassword />} />
 	  {/* --- NEW PASSWORD RESET ROUTES --- */}
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
