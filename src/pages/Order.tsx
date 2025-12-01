@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
+import { useCart } from "../context/CartContext";
 
 type OrderItem = {
     product_name: string;
@@ -11,7 +12,7 @@ type OrderItem = {
 
 type OrderStatus = {
   order_id: string;
-  friendly_id?: string; // <--- NEW FIELD
+  friendly_id?: string;
   derived_status: string;
   total_cents: number;
   subtotal_cents: number;
@@ -25,6 +26,8 @@ type OrderStatus = {
 
 export default function OrderPage() {
   const { id } = useParams();
+  const { refreshCart } = useCart();
+  
   const [data, setData] = useState<OrderStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,11 +39,15 @@ export default function OrderPage() {
   useEffect(() => {
     if (!id) return;
 
+    // Handle Stripe Return Logic
     if (id.startsWith("cs_")) {
        setLoading(true);
        fetch(`${API_BASE}/payments/sync-order/${id}`, { method: 'POST' })
          .then(r => r.ok ? r.json() : Promise.reject("Sync failed"))
          .then(syncData => {
+            // Only refresh ONCE upon successful sync
+            refreshCart(); 
+            
             window.history.replaceState(null, "", `/#/order/${syncData.order_id}`);
             return fetch(`${API_BASE}/orders/${syncData.order_id}/status`);
          })
@@ -57,7 +64,9 @@ export default function OrderPage() {
       .then(setData)
       .catch(e => setErr(String(e)))
       .finally(() => setLoading(false));
-  }, [id]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]); 
 
   if (loading) return <div style={{padding:40, textAlign:'center'}}>Loading Receipt...</div>;
   if (err) return <div style={{padding:40, color:'crimson'}}>Error: {err}</div>;
@@ -80,7 +89,6 @@ export default function OrderPage() {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32, fontSize: 14 }}>
                   <div>
                       <div style={{ color: "#64748b", marginBottom: 4 }}>Order Number</div>
-                      {/* FIX: Show Friendly ID if available, else fallback to UUID segment */}
                       <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 16 }}>
                           #{data.friendly_id || data.order_id.slice(0, 8).toUpperCase()}
                       </div>

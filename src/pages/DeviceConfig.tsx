@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import { useToast } from "../context/ToastContext"; // <--- 1. Import Toast
 import "./Devices.css";
 
 type Device = {
@@ -37,6 +38,7 @@ function authHeaders() {
 export default function DeviceConfig() {
   const { deviceId } = useParams<{ deviceId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast(); // <--- 2. Init Hook
   
   // State for reference data
   const [timezones, setTimezones] = useState<Timezone[]>([]);
@@ -48,7 +50,7 @@ export default function DeviceConfig() {
   const [err, setErr] = useState<string | null>(null);
 
   // State for the EDIT form
-  const [editName, setEditName] = useState(""); // <--- NEW: State for Name
+  const [editName, setEditName] = useState("");
   const [editTimezoneId, setEditTimezoneId] = useState<string>("");
   const [editRenderType, setEditRenderType] = useState<Device["render_type"]>("H");
   const [editRenderSpeed, setEditRenderSpeed] = useState<number>(3);
@@ -74,9 +76,8 @@ export default function DeviceConfig() {
       if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       const data: Device = await res.json();
       
-      // Update the main device state and pre-fill the form fields
       setDevice(data);
-      setEditName(data.name); // <--- NEW: Pre-fill name
+      setEditName(data.name);
       setEditTimezoneId(data.timezone_id || (timezones[0]?.id ?? ""));
       setEditRenderType(data.render_type || "H");
       setEditRenderSpeed(typeof data.render_speed === "number" ? data.render_speed : 3);
@@ -110,7 +111,6 @@ export default function DeviceConfig() {
     loadTimezones();
   }, [deviceId]);
   
-  // Update form fields if timezone data loads later
   useEffect(() => {
       if (device && !tzLoading && timezones.length && !editTimezoneId) {
           setEditTimezoneId(device.timezone_id || timezones[0].id);
@@ -128,6 +128,8 @@ export default function DeviceConfig() {
 
   async function saveDeviceSettings(e: React.FormEvent) {
     e.preventDefault();
+    setErr(null); // Clear previous errors
+
     if (!deviceId || !device) return;
     if (!editTimezoneId) {
       setErr("Please select a timezone.");
@@ -141,7 +143,7 @@ export default function DeviceConfig() {
     setSaving(true);
     try {
       const body: any = {
-        name: editName, // <--- NEW: Send updated name
+        name: editName,
         firmware_version: device.firmware_version ?? null,
         timezone_id: editTimezoneId,
         render_type: editRenderType ?? "H",
@@ -154,9 +156,10 @@ export default function DeviceConfig() {
       });
       if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       
-      // Refresh the local device state to reflect changes and show success
       await loadDevice(); 
-      setErr("Settings saved successfully!");
+      
+      // 3. Use Toast instead of on-screen message
+      toast("Settings saved successfully!");
 
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save device settings");
@@ -178,13 +181,11 @@ export default function DeviceConfig() {
   return (
     <div className="dv-container">
         
-        {/* TOP HEADER / CURRENT SETTINGS REVIEW */}
         <Link to="/devices" style={{ display: 'block', marginBottom: 12, textDecoration: 'none', color: '#334155', fontWeight: 500 }}>
             ← Back to Device List
         </Link>
         <h1 className="dv-title">{device.name} Configuration</h1>
         
-        {/* CURRENT STATUS */}
         <div style={{ padding: 16, background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 24 }}>
             <div className="dv-row-title">Device ID: {device.controller_id}</div>
             <div className="dv-row-meta" style={{ marginTop: 4 }}>
@@ -198,17 +199,15 @@ export default function DeviceConfig() {
             </div>
         </div>
 
-      {/* EDIT FORM */}
       <div className="dv-card" style={{ padding: 24 }}>
         <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Edit Device Settings</h2>
 
+        {/* Only show error alerts here, success is now a toast */}
         {err && <div className="dv-alert">{err}</div>}
 
         <form onSubmit={saveDeviceSettings}>
-            {/* Changed to 2 columns to fit Name, TZ, Type, Speed nicely */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 
-                {/* NEW: Device Name Input */}
                 <div className="dv-field">
                     <label>Device Name (Friendly Name)</label>
                     <input

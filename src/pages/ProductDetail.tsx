@@ -2,7 +2,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
-import { useCart } from "../context/CartContext"; // <--- NEW IMPORT
+import { useCart } from "../context/CartContext";
+import { useToast } from "../context/ToastContext"; // <--- 1. Import
 
 type Product = {
   id: string;
@@ -15,14 +16,15 @@ type Product = {
 };
 
 export default function ProductDetail() {
-  const { id } = useParams(); // slug or UUID
+  const { id } = useParams();
   const nav = useNavigate();
-  const { addToCart } = useCart(); // <--- NEW HOOK
+  const { addToCart } = useCart();
+  const { toast } = useToast(); // <--- 2. Init Hook
   
   const [p, setP] = useState<Product | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false); // <--- UI State for feedback
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -51,30 +53,28 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Handler for adding to cart
   const handleAddToCart = async () => {
       if (!p) return;
       setAdding(true);
       try {
         await addToCart(p.id); 
-        alert("Item added to cart!"); // Simple feedback for now
+        // 3. USE TOAST INSTEAD OF ALERT
+        toast(`Added ${p.name} to cart`); 
       } catch (e) {
         console.error(e);
-        alert("Failed to add item.");
+        toast("Failed to add item", "error");
       } finally {
         setAdding(false);
       }
   };
 
-  // Apply font family to loading/error states as well
   const containerStyle = {
     padding: 24,
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
   };
 
   if (loading) return <div style={containerStyle}>Loading…</div>;
-  if (err)
-    return (
+  if (err) return (
       <div style={containerStyle}>
         <p style={{ color: "crimson", whiteSpace: "pre-wrap" }}>Error: {err}</p>
         <Link to="/" style={{ color: "#2563eb", textDecoration: "none" }}>← Back</Link>
@@ -97,7 +97,7 @@ export default function ProductDetail() {
           margin: "0 auto",
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 40, // Increased gap slightly
+          gap: 40,
           padding: 24,
         }}
       >
@@ -117,9 +117,7 @@ export default function ProductDetail() {
           </div>
           <p style={{ color: "#475569", marginBottom: 32, lineHeight: 1.6 }}>{p.short}</p>
           
-          {/* TWO BUTTON LAYOUT */}
           <div style={{ display: 'flex', gap: 12 }}>
-              {/* Primary: Buy Now (Direct Checkout) */}
               <button
                 onClick={() => nav(`/checkout/${p.slug ?? p.id}`)}
                 style={{
@@ -137,7 +135,6 @@ export default function ProductDetail() {
                 Buy Now
               </button>
 
-              {/* Secondary: Add to Cart (Server Cart) */}
               <button
                 onClick={handleAddToCart}
                 disabled={adding}
@@ -151,8 +148,11 @@ export default function ProductDetail() {
                   fontWeight: 600,
                   fontSize: 16,
                   cursor: "pointer",
-                  opacity: adding ? 0.7 : 1
+                  opacity: adding ? 0.7 : 1,
+                  transition: "background 0.2s"
                 }}
+                // Add hover effect via simple inline style logic isn't perfect, 
+                // but standard CSS classes would be better here.
               >
                 {adding ? "Adding..." : "Add to Cart"}
               </button>
