@@ -5,10 +5,10 @@ import { API_BASE } from "../lib/api";
 import { useCart } from "../context/CartContext";
 
 type OrderItem = {
-    product_name: string;
-    qty: number;
-    unit_price_cents: number;
-    discount_cents?: number;
+  product_name: string;
+  qty: number;
+  unit_price_cents: number;   // discounted unit price
+  discount_cents?: number;    // per-unit discount
 };
 
 type OrderStatus = {
@@ -22,208 +22,391 @@ type OrderStatus = {
   ship_name: string;
   ship_address: string;
   items: OrderItem[];
+  total_discount_cents?: number; // NEW: total discount for the order
   created_at?: string;
 };
 
 export default function OrderPage() {
   const { id } = useParams();
   const { refreshCart } = useCart();
-  
+
   const [data, setData] = useState<OrderStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Format currency helper
-  const fmt = (cents: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  const fmt = (cents: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(cents / 100);
 
   useEffect(() => {
     if (!id) return;
 
     // Handle Stripe Return Logic
     if (id.startsWith("cs_")) {
-       setLoading(true);
-       fetch(`${API_BASE}/payments/sync-order/${id}`, { method: 'POST' })
-         .then(r => r.ok ? r.json() : Promise.reject("Sync failed"))
-         .then(syncData => {
-            // Only refresh ONCE upon successful sync
-            refreshCart(); 
-            
-            window.history.replaceState(null, "", `/#/order/${syncData.order_id}`);
-            return fetch(`${API_BASE}/orders/${syncData.order_id}/status`);
-         })
-         .then(r => r.json())
-         .then(setData)
-         .catch(e => setErr("Could not verify payment."))
-         .finally(() => setLoading(false));
-       return;
+      setLoading(true);
+      fetch(`${API_BASE}/payments/sync-order/${id}`, { method: "POST" })
+        .then((r) => (r.ok ? r.json() : Promise.reject("Sync failed")))
+        .then((syncData) => {
+          // Only refresh ONCE upon successful sync
+          refreshCart();
+
+          window.history.replaceState(
+            null,
+            "",
+            `/#/order/${syncData.order_id}`
+          );
+          return fetch(`${API_BASE}/orders/${syncData.order_id}/status`);
+        })
+        .then((r) => r.json())
+        .then(setData)
+        .catch(() => setErr("Could not verify payment."))
+        .finally(() => setLoading(false));
+      return;
     }
 
     setLoading(true);
     fetch(`${API_BASE}/orders/${encodeURIComponent(id)}/status`)
-      .then(async r => r.ok ? r.json() : Promise.reject(await r.text()))
+      .then(async (r) => (r.ok ? r.json() : Promise.reject(await r.text())))
       .then(setData)
-      .catch(e => setErr(String(e)))
+      .catch((e) => setErr(String(e)))
       .finally(() => setLoading(false));
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]); 
+  }, [id]);
 
-  if (loading) return <div style={{padding:40, textAlign:'center'}}>Loading Receipt...</div>;
-  if (err) return <div style={{padding:40, color:'crimson'}}>Error: {err}</div>;
-  if (!data) return <div style={{padding:40}}>Order not found</div>;
+  if (loading)
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        Loading Receipt...
+      </div>
+    );
+  if (err)
+    return (
+      <div style={{ padding: 40, color: "crimson" }}>Error: {err}</div>
+    );
+  if (!data) return <div style={{ padding: 40 }}>Order not found</div>;
+
+  // --- SUMMARY CALCULATIONS ---
+  const subtotalCents =
+    typeof data.subtotal_cents === "number"
+      ? data.subtotal_cents
+      : data.total_cents;
+
+  const discountTotalCents = data.total_discount_cents || 0;
+  const hasDiscount = discountTotalCents > 0;
+
+  // “Total (before discounts)” = what items would have cost without discounts
+  const preDiscountItemsTotalCents =
+    subtotalCents + discountTotalCents;
 
   return (
-    <div style={{ padding: "40px 20px", maxWidth: 600, margin: "0 auto", fontFamily: "Inter, system-ui, sans-serif", color: "#0f172a" }}>
-      <Link to="/" style={{ color: "#64748b", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>← Back Home</Link>
-      
-      <div style={{ marginTop: 20, background: "white", border: "1px solid #e2e8f0", borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)" }}>
-          
-          <div style={{ background: "#f8fafc", padding: "32px", borderBottom: "1px solid #e2e8f0", textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-              <h1 style={{ margin: "0 0 8px 0", fontSize: 24, fontWeight: 800 }}>Order Confirmed!</h1>
-              <p style={{ margin: 0, color: "#64748b" }}>Thank you for your purchase.</p>
+    <div
+      style={{
+        padding: "40px 20px",
+        maxWidth: 600,
+        margin: "0 auto",
+        fontFamily: "Inter, system-ui, sans-serif",
+        color: "#0f172a",
+      }}
+    >
+      <Link
+        to="/"
+        style={{
+          color: "#64748b",
+          textDecoration: "none",
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      >
+        ← Back Home
+      </Link>
+
+      <div
+        style={{
+          marginTop: 20,
+          background: "white",
+          border: "1px solid #e2e8f0",
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        <div
+          style={{
+            background: "#f8fafc",
+            padding: "32px",
+            borderBottom: "1px solid #e2e8f0",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+          <h1
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: 24,
+              fontWeight: 800,
+            }}
+          >
+            Order Confirmed!
+          </h1>
+          <p style={{ margin: 0, color: "#64748b" }}>
+            Thank you for your purchase.
+          </p>
+        </div>
+
+        <div style={{ padding: "32px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 32,
+              fontSize: 14,
+            }}
+          >
+            <div>
+              <div
+                style={{ color: "#64748b", marginBottom: 4 }}
+              >
+                Order Number
+              </div>
+              <div
+                style={{
+                  fontFamily: "monospace",
+                  fontWeight: 600,
+                  fontSize: 16,
+                }}
+              >
+                #
+                {data.friendly_id ||
+                  data.order_id.slice(0, 8).toUpperCase()}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div
+                style={{ color: "#64748b", marginBottom: 4 }}
+              >
+                Status
+              </div>
+              <span
+                style={{
+                  background: "#dcfce7",
+                  color: "#166534",
+                  padding: "4px 10px",
+                  borderRadius: 99,
+                  fontWeight: 700,
+                  textTransform: "capitalize",
+                }}
+              >
+                {data.derived_status}
+              </span>
+            </div>
           </div>
 
-          <div style={{ padding: "32px" }}>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32, fontSize: 14 }}>
-                  <div>
-                      <div style={{ color: "#64748b", marginBottom: 4 }}>Order Number</div>
-                      <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 16 }}>
-                          #{data.friendly_id || data.order_id.slice(0, 8).toUpperCase()}
-                      </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                      <div style={{ color: "#64748b", marginBottom: 4 }}>Status</div>
-                      <span style={{ background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: 99, fontWeight: 700, textTransform: "capitalize" }}>
-                          {data.derived_status}
-                      </span>
-                  </div>
-              </div>
+          <hr
+            style={{
+              border: "0",
+              borderTop: "1px solid #f1f5f9",
+              margin: "24px 0",
+            }}
+          />
 
-              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
+          {/* ITEMS */}
+          <div style={{ marginBottom: 24 }}>
+            <h3
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 16,
+                letterSpacing: "0.05em",
+              }}
+            >
+              Items
+            </h3>
 
-              {/* ITEMS */}
-              <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: 16, letterSpacing: '0.05em' }}>Items</h3>
+{data.items?.map((item, i) => {
+  const perUnitDiscount = item.discount_cents || 0;
+  const perUnitOriginal = item.unit_price_cents + perUnitDiscount;
+  const lineOriginal = perUnitOriginal * item.qty;
 
-              {data.items?.map((item, i) => {
-                  const perUnitDiscount = item.discount_cents || 0;
-                  const hasDiscount = perUnitDiscount > 0;
+  return (
+    <div
+      key={i}
+      style={{
+        marginBottom: 12,
+        fontSize: 14,
+        display: "flex",
+        justifyContent: "space-between",
+      }}
+    >
+      <div>
+        <span
+          style={{
+            fontWeight: 600,
+            marginRight: 8,
+          }}
+        >
+          {item.qty}x
+        </span>
+        {item.product_name}
+      </div>
 
-                  const perUnitOriginal = item.unit_price_cents + perUnitDiscount;
-                  const lineFinal = item.unit_price_cents * item.qty;
-                  const lineOriginal = perUnitOriginal * item.qty;
-                  const lineDiscount = perUnitDiscount * item.qty;
-
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        marginBottom: 12,
-                        fontSize: 14,
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontWeight: 600, marginRight: 8 }}>
-                          {item.qty}x
-                        </span>
-                        {item.product_name}
-                      </div>
-
-                      <div style={{ textAlign: "right" }}>
-                        {hasDiscount ? (
-                          <>
-                            {/* Final (discounted) line total */}
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                color: "#16a34a",
-                              }}
-                            >
-                              {fmt(lineFinal)}
-                            </div>
-
-                            {/* Original line total, struck through */}
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "#9ca3af",
-                                textDecoration: "line-through",
-                              }}
-                            >
-                              {fmt(lineOriginal)}
-                            </div>
-
-                            {/* "You save ..." for this line */}
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "#16a34a",
-                                fontWeight: 600,
-                                marginTop: 2,
-                              }}
-                            >
-                              You save {fmt(lineDiscount)}
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ fontWeight: 600 }}>
-                            {fmt(lineFinal)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-              })}
-
-
-
-
-
-              </div>
-
-              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
-
-              {/* SUMMARY */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
-                      <span>Subtotal</span>
-                      <span>{fmt(data.subtotal_cents || data.total_cents)}</span>
-                  </div>
-                  {data.tax_cents > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
-                          <span>Sales Tax</span>
-                          <span>{fmt(data.tax_cents)}</span>
-                      </div>
-                  )}
-                  {data.shipping_cents > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
-                          <span>Shipping</span>
-                          <span>{fmt(data.shipping_cents)}</span>
-                      </div>
-                  )}
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 20, marginTop: 12, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
-                      <span>Total</span>
-                      <span>{fmt(data.total_cents)}</span>
-                  </div>
-              </div>
-
-              <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
-
-              {/* ADDRESS */}
-              <div style={{ fontSize: 14 }}>
-                  <div style={{ color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.05em" }}>Shipping To</div>
-                  <div style={{ fontWeight: 600, fontSize: 16 }}>{data.ship_name}</div>
-                  <div style={{ color: "#334155", marginTop: 4, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-                      {data.ship_address}
-                  </div>
-              </div>
+      {/* Show only the original (pre-discount) line total here */}
+      <div style={{ textAlign: "right", fontWeight: 600 }}>
+        {fmt(lineOriginal)}
+      </div>
+    </div>
+  );
+})}
 
           </div>
+
+          <hr
+            style={{
+              border: "0",
+              borderTop: "1px solid #f1f5f9",
+              margin: "24px 0",
+            }}
+          />
+
+          {/* SUMMARY */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              fontSize: 14,
+            }}
+          >
+            {/* New: Total (before discounts) + Discounts applied */}
+            {hasDiscount && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: "#64748b",
+                  }}
+                >
+                  <span>Total (before discounts)</span>
+                  <span>{fmt(preDiscountItemsTotalCents)}</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: "#16a34a",
+                  }}
+                >
+                  <span>Discounts applied</span>
+                  <span>{fmt(-discountTotalCents)}</span>
+                </div>
+              </>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                color: "#64748b",
+              }}
+            >
+              <span>Subtotal</span>
+              <span>{fmt(subtotalCents)}</span>
+            </div>
+
+{/* Shipping row — always shown */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    color: "#64748b",
+  }}
+>
+  <span>Shipping</span>
+
+  {(!data.shipping_cents || data.shipping_cents === 0) ? (
+    <span style={{ color: "#16a34a", fontWeight: 600 }}>
+      FREE
+    </span>
+  ) : (
+    <span>{fmt(data.shipping_cents)}</span>
+  )}
+</div>
+
+            {/* Sales tax row (only if > 0) */}
+            {data.tax_cents > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  color: "#64748b",
+                }}
+              >
+                <span>Sales Tax</span>
+                <span>{fmt(data.tax_cents)}</span>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontWeight: 800,
+                fontSize: 20,
+                marginTop: 12,
+                paddingTop: 16,
+                borderTop: "1px solid #f1f5f9",
+              }}
+            >
+              <span>Total</span>
+              <span>{fmt(data.total_cents)}</span>
+            </div>
+          </div>
+
+          <hr
+            style={{
+              border: "0",
+              borderTop: "1px solid #f1f5f9",
+              margin: "24px 0",
+            }}
+          />
+
+          {/* ADDRESS */}
+          <div style={{ fontSize: 14 }}>
+            <div
+              style={{
+                color: "#64748b",
+                fontWeight: 600,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                fontSize: 12,
+                letterSpacing: "0.05em",
+              }}
+            >
+              Shipping To
+            </div>
+            <div
+              style={{ fontWeight: 600, fontSize: 16 }}
+            >
+              {data.ship_name}
+            </div>
+            <div
+              style={{
+                color: "#334155",
+                marginTop: 4,
+                lineHeight: 1.5,
+                whiteSpace: "pre-line",
+              }}
+            >
+              {data.ship_address}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
