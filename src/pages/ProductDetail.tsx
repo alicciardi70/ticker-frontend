@@ -11,6 +11,7 @@ type Product = {
   name: string;
   short?: string | null;
   price_cents: number;
+  discount_cents: number; 
   image_url?: string | null;
   created_at: string;
 };
@@ -82,6 +83,11 @@ export default function ProductDetail() {
     );
   if (!p) return <div style={containerStyle}>Not found</div>;
 
+  const originalPrice = p.price_cents / 100;
+  const discount = (p.discount_cents || 0) / 100;
+  const finalPrice = Math.max(originalPrice - discount, 0);
+  const hasDiscount = p.discount_cents > 0;
+
   return (
     <div style={{ 
       minHeight: "100vh", 
@@ -112,9 +118,55 @@ export default function ProductDetail() {
         </div>
         <div>
           <h1 style={{ fontSize: 24, marginBottom: 8, fontWeight: 800, letterSpacing: "-0.5px" }}>{p.name}</h1>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 20 }}>
-            ${(p.price_cents / 100).toFixed(2)}
+
+          <div style={{ marginBottom: 12 }}>
+            {hasDiscount ? (
+              <>
+                {/* Final (discounted) price */}
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 22,
+                    color: "#16a34a",
+                    marginBottom: 4,
+                  }}
+                >
+                  ${finalPrice.toFixed(2)}
+                </div>
+
+                {/* Original price, struck through */}
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: "#9ca3af",
+                    textDecoration: "line-through",
+                    marginBottom: 2,
+                  }}
+                >
+                  ${originalPrice.toFixed(2)}
+                </div>
+
+                {/* Discount amount / “You save …” */}
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#16a34a",
+                    fontWeight: 600,
+                  }}
+                >
+                  You save ${discount.toFixed(2)}
+                </div>
+              </>
+            ) : (
+              // No discount — just show the normal price
+              <div style={{ fontWeight: 700, fontSize: 20 }}>
+                ${originalPrice.toFixed(2)}
+              </div>
+            )}
           </div>
+
+
+
           <p style={{ color: "#475569", marginBottom: 32, lineHeight: 1.6 }}>{p.short}</p>
           
           <div style={{ display: 'flex', gap: 12 }}>

@@ -8,6 +8,7 @@ type OrderItem = {
     product_name: string;
     qty: number;
     unit_price_cents: number;
+    discount_cents?: number;
 };
 
 type OrderStatus = {
@@ -106,15 +107,83 @@ export default function OrderPage() {
               {/* ITEMS */}
               <div style={{ marginBottom: 24 }}>
                   <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: 16, letterSpacing: '0.05em' }}>Items</h3>
-                  {data.items?.map((item, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 14 }}>
-                          <div>
-                              <span style={{ fontWeight: 600, marginRight: 8 }}>{item.qty}x</span> 
-                              {item.product_name}
-                          </div>
-                          <div>{fmt(item.unit_price_cents * item.qty)}</div>
+
+              {data.items?.map((item, i) => {
+                  const perUnitDiscount = item.discount_cents || 0;
+                  const hasDiscount = perUnitDiscount > 0;
+
+                  const perUnitOriginal = item.unit_price_cents + perUnitDiscount;
+                  const lineFinal = item.unit_price_cents * item.qty;
+                  const lineOriginal = perUnitOriginal * item.qty;
+                  const lineDiscount = perUnitDiscount * item.qty;
+
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        marginBottom: 12,
+                        fontSize: 14,
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 600, marginRight: 8 }}>
+                          {item.qty}x
+                        </span>
+                        {item.product_name}
                       </div>
-                  ))}
+
+                      <div style={{ textAlign: "right" }}>
+                        {hasDiscount ? (
+                          <>
+                            {/* Final (discounted) line total */}
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                color: "#16a34a",
+                              }}
+                            >
+                              {fmt(lineFinal)}
+                            </div>
+
+                            {/* Original line total, struck through */}
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#9ca3af",
+                                textDecoration: "line-through",
+                              }}
+                            >
+                              {fmt(lineOriginal)}
+                            </div>
+
+                            {/* "You save ..." for this line */}
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#16a34a",
+                                fontWeight: 600,
+                                marginTop: 2,
+                              }}
+                            >
+                              You save {fmt(lineDiscount)}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontWeight: 600 }}>
+                            {fmt(lineFinal)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+              })}
+
+
+
+
+
               </div>
 
               <hr style={{ border: "0", borderTop: "1px solid #f1f5f9", margin: "24px 0" }} />
