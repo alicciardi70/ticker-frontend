@@ -1,9 +1,9 @@
-// src/pages/Devices.tsx (FINALIZED DROP-IN REPLACEMENT)
+// src/pages/Devices.tsx
 
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "../lib/api";
-import { useNavigate } from "react-router-dom";
 import "./Devices.css";
+import { DeviceConfigPanel } from "./DeviceConfig";
 
 type Device = {
   id: string;
@@ -41,13 +41,28 @@ export default function Devices() {
   const [tzLoading, setTzLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const navigate = useNavigate();
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // --- responsive breakpoint (mobile vs desktop) ---
+  useEffect(() => {
+    const check = () => {
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth <= 900);
+      }
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   async function loadDevices() {
     setErr(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/devices`, { headers: { ...authHeaders() } });
+      const res = await fetch(`${API_BASE}/devices`, {
+        headers: { ...authHeaders() },
+      });
       if (res.status === 401) {
         localStorage.removeItem("token");
         window.location.hash = "#/login";
@@ -65,7 +80,9 @@ export default function Devices() {
   async function loadTimezones() {
     setTzLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/timezones`, { headers: { ...authHeaders() } });
+      const res = await fetch(`${API_BASE}/timezones`, {
+        headers: { ...authHeaders() },
+      });
       if (!res.ok) {
         setTimezones([]);
         return;
@@ -90,13 +107,13 @@ export default function Devices() {
     return m;
   }, [timezones]);
 
-  return (
-    <div className="dv-container">
+  // reusable list markup so we can show it in mobile & desktop modes
+  const deviceList = (
+    <>
       <h1 className="dv-title">Your Ticker Devices</h1>
 
       {err && <div className="dv-alert">{err}</div>}
 
-      {/* LIST */}
       {loading ? (
         <div className="dv-muted">Loading…</div>
       ) : devices.length === 0 ? (
@@ -104,50 +121,75 @@ export default function Devices() {
       ) : (
         <ul className="dv-list">
           {devices.map((d) => {
-            const tz = d.timezone_id ? tzMap.get(d.timezone_id) : undefined;
+            const isSelected = selectedDeviceId === d.id;
             return (
               <li
                 key={d.id}
-                className={`dv-card dv-row`}
+                className={`dv-card dv-row dv-row-compact ${isSelected ? "dv-row-selected" : ""}`}
+                onClick={() => setSelectedDeviceId(d.id)}
               >
-                <div className="dv-row-head">
-                  <div className="dv-row-title">{d.name}</div>
-                  {/* 🚨 FINAL UPDATE: Controller/Display ID to Device ID */}
-                  <div className="dv-row-sub">Device ID: {d.controller_id}</div> 
-                  <div className="dv-row-meta">
-                    {tz ? (
-                      <>
-                        Time Zone: <strong>{tz.tz_label}</strong> <span className="dv-dim">({tz.tz_name})</span>
-                      </>
-                    ) : (
-                      <>Time Zone: <em>none</em></>
-                    )}
-                    <span className="dv-sep">•</span>
-                    Animation:{" "}
-                    <strong>
-                      {RENDER_TYPES.find((x) => x.value === d.render_type)?.label || "Horizontal scroll"}
-                    </strong>
-                    <span className="dv-sep">•</span> Speed:{" "}
-                    <strong>{typeof d.render_speed === "number" ? d.render_speed : 3}</strong>
+                <div className="dv-row-main">
+                  <div>
+                    <div className="dv-row-title">{d.name}</div>
+                    <div className="dv-row-sub">Device ID: {d.controller_id}</div>
                   </div>
+                  <div className="dv-row-chevron">›</div>
                 </div>
-
-                <div className="dv-row-controls">
-                    <button
-                      className="dv-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/devices/${d.id}/config`); 
-                      }}
-                    >
-                      Display & Data settings
-                    </button>
-                  </div>
               </li>
             );
           })}
         </ul>
       )}
+    </>
+  );
+
+  // --- MOBILE MODE ---
+  if (isMobile) {
+    // Screen 1: just the list
+    if (!selectedDeviceId) {
+      return <div className="dv-container">{deviceList}</div>;
+    }
+
+    // Screen 2: full-screen config with back button
+    return (
+      <div className="dv-container">
+        <button
+          type="button"
+          className="dv-btn dv-btn-ghost"
+          style={{ marginBottom: 16 }}
+          onClick={() => setSelectedDeviceId(null)}
+        >
+          ← Back to devices
+        </button>
+        <DeviceConfigPanel
+          deviceId={selectedDeviceId}
+          embedded
+          onSaved={loadDevices}
+          onClose={() => setSelectedDeviceId(null)}
+        />
+      </div>
+    );
+  }
+
+  // --- DESKTOP / TABLET MODE (side-by-side) ---
+  return (
+    <div className="dv-container dv-layout">
+      <div className="dv-layout-list">{deviceList}</div>
+
+      <div className="dv-layout-panel">
+        {selectedDeviceId ? (
+          <DeviceConfigPanel
+            deviceId={selectedDeviceId}
+            embedded
+            onSaved={loadDevices}
+            onClose={() => setSelectedDeviceId(null)}
+          />
+        ) : (
+          <div className="dv-muted dv-panel-placeholder">
+            Select a device to edit its settings.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

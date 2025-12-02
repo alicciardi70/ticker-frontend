@@ -20,9 +20,9 @@ button, input, select {
 }
 
 .dv-title {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   margin: 0 0 16px;
 }
 
@@ -41,12 +41,6 @@ button, input, select {
   white-space: pre-wrap;
 }
 
-.dv-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
 
 .dv-create {
   padding: 16px;
@@ -209,4 +203,218 @@ button, input, select {
   .dv-row-controls {
     justify-content: flex-start;
   }
+}
+
+/* master–detail layout */
+.dv-layout {
+  display: flex;
+  gap: 24px;
+}
+
+.dv-layout-list {
+  flex: 1 1 40%;
+}
+
+.dv-layout-panel {
+  flex: 1 1 60%;
+}
+
+@media (max-width: 900px) {
+  .dv-layout {
+    flex-direction: column;
+  }
+}
+
+/* inline panel styling */
+.dv-panel-embedded {
+  background: transparent;
+}
+
+.dv-panel-placeholder {
+  margin-top: 48px;
+  font-size: 0.95rem;
+}
+
+/* visual cue for selected card */
+.dv-row-selected {
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+.dv-row-selected .dv-row-title {
+  color: #1d4ed8;
+}
+
+/* header row with inline close button */
+.dv-header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dv-btn-ghost {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.dv-btn-ghost:hover {
+  color: #0f172a;
+}
+/* Compact device list rows: name + Device ID only */
+.dv-row-compact {
+  /* override grid layout from .dv-row */
+  display: block;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.dv-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dv-row-title {
+  font-weight: 600;        /* a bit lighter than 800 so it feels less bulky */
+  font-size: 1rem;
+}
+
+.dv-row-sub {
+  color: #64748b;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.dv-row-chevron {
+  font-size: 1.25rem;
+  color: #94a3b8;
+}
+
+.dv-row-compact:hover .dv-row-chevron {
+  color: #0f172a;
+}
+
+/* ===== DeviceConfig editable field styling ===== */
+
+/* Base styling applied to all four fields via className="dv-input ..." */
+.dv-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+  outline: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Read-only mode (before clicking Edit Settings) */
+.dv-input.read-mode {
+  background-color: #ffffff;  /* white */
+  color: #777777;             /* grey text */
+  cursor: not-allowed;
+}
+
+/* Edit mode (after clicking Edit Settings) */
+.dv-input.edit-mode {
+  background-color: #e7f3ff;  /* light blue */
+  color: #000000;             /* black text */
+  border-color: #4a90e2;      /* blue-ish border */
+  cursor: text;
+}
+
+.dv-input.edit-mode:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+/* Ensure fields do not shrink because of label length */
+.dv-field {
+  width: 100%;
+}
+
+/* Make input/select always expand full width */
+.dv-field input.dv-input,
+.dv-field select.dv-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* NEW */
+
+/* ===== Device config polish ===== */
+
+
+
+/* Title spacing over the card */
+.dv-title {
+  margin-bottom: 16px;
+}
+
+/* Settings section header inside the card */
+.dv-card h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* Labels: small, all-caps-ish, subtle */
+.dv-field label {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+/* Ensure field + input always fill the column */
+.dv-field {
+  width: 100%;
+}
+
+.dv-field input.dv-input,
+.dv-field select.dv-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Layout: two columns on desktop, one column on smaller screens */
+.dv-settings-grid {
+  align-items: flex-start;
+}
+
+@media (max-width: 960px) {
+  .dv-settings-grid {
+    grid-template-columns: 1fr;
+    row-gap: 16px;
+  }
+
+  .dv-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* Buttons row a bit tighter & aligned left */
+.dv-actions {
+  margin-top: 4px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+/* Optional: make the primary button stand out slightly more */
+.dv-btn-primary {
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+/* Softer, more subtle card shadow */
+.dv-card {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
 }

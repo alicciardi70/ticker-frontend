@@ -1,9 +1,7 @@
-// src/pages/DeviceConfig.tsx
-
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { useToast } from "../context/ToastContext"; // <--- 1. Import Toast
+import { useToast } from "../context/ToastContext";
 import "./Devices.css";
 
 type Device = {
@@ -35,53 +33,71 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export default function DeviceConfig() {
-  const { deviceId } = useParams<{ deviceId: string }>();
+type DeviceConfigPanelProps = {
+  deviceId: string;
+  embedded?: boolean;
+  onClose?: () => void;
+  onSaved?: () => void;
+};
+
+export function DeviceConfigPanel({
+  deviceId,
+  embedded = false,
+  onClose,
+  onSaved,
+}: DeviceConfigPanelProps) {
   const navigate = useNavigate();
-  const { toast } = useToast(); // <--- 2. Init Hook
-  
-  // State for reference data
+  const { toast } = useToast();
+
   const [timezones, setTimezones] = useState<Timezone[]>([]);
   const [tzLoading, setTzLoading] = useState(true);
-  
-  // State for current device data
+
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // State for the EDIT form
   const [editName, setEditName] = useState("");
   const [editTimezoneId, setEditTimezoneId] = useState<string>("");
-  const [editRenderType, setEditRenderType] = useState<Device["render_type"]>("H");
+  const [editRenderType, setEditRenderType] =
+    useState<Device["render_type"]>("H");
   const [editRenderSpeed, setEditRenderSpeed] = useState<number>(3);
+
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-
-  // --- Data Loading Functions ---
+  // --------- load data ---------
 
   async function loadDevice() {
     if (!deviceId) return;
     setLoading(true);
+    setErr(null);
     try {
-      const res = await fetch(`${API_BASE}/devices/${deviceId}`, { headers: { ...authHeaders() } });
+      const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+        headers: { ...authHeaders() },
+      });
       if (res.status === 401) {
         localStorage.removeItem("token");
         window.location.hash = "#/login";
         return;
       }
       if (res.status === 404) {
-          setErr("Device not found.");
-          return;
+        setErr("Device not found.");
+        return;
       }
-      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      if (!res.ok)
+        throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+
       const data: Device = await res.json();
-      
       setDevice(data);
+
+      // initialize form values from device
       setEditName(data.name);
-      setEditTimezoneId(data.timezone_id || (timezones[0]?.id ?? ""));
+      setEditTimezoneId(data.timezone_id || "");
       setEditRenderType(data.render_type || "H");
-      setEditRenderSpeed(typeof data.render_speed === "number" ? data.render_speed : 3);
-      
+      setEditRenderSpeed(
+        typeof data.render_speed === "number" ? data.render_speed : 3
+      );
+      setIsEditing(false); // always start read-only
     } catch (e: any) {
       setErr(e?.message ?? "Failed to load device details");
     } finally {
@@ -92,7 +108,9 @@ export default function DeviceConfig() {
   async function loadTimezones() {
     setTzLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/timezones`, { headers: { ...authHeaders() } });
+      const res = await fetch(`${API_BASE}/timezones`, {
+        headers: { ...authHeaders() },
+      });
       if (!res.ok) {
         setTimezones([]);
         return;
@@ -110,11 +128,11 @@ export default function DeviceConfig() {
     loadDevice();
     loadTimezones();
   }, [deviceId]);
-  
+
   useEffect(() => {
-      if (device && !tzLoading && timezones.length && !editTimezoneId) {
-          setEditTimezoneId(device.timezone_id || timezones[0].id);
-      }
+    if (device && !tzLoading && timezones.length && !editTimezoneId) {
+      setEditTimezoneId(device.timezone_id || timezones[0].id);
+    }
   }, [device, tzLoading, timezones, editTimezoneId]);
 
   const tzMap = useMemo(() => {
@@ -123,12 +141,12 @@ export default function DeviceConfig() {
     return m;
   }, [timezones]);
 
+  // --------- save / cancel ---------
 
-  // --- Form Submission ---
+  async function saveDeviceSettings() {
+    if (!isEditing) return; // guard: don't save if not in edit mode
 
-  async function saveDeviceSettings(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null); // Clear previous errors
+    setErr(null);
 
     if (!deviceId || !device) return;
     if (!editTimezoneId) {
@@ -136,8 +154,8 @@ export default function DeviceConfig() {
       return;
     }
     if (!editName.trim()) {
-        setErr("Device name cannot be empty.");
-        return;
+      setErr("Device name cannot be empty.");
+      return;
     }
 
     setSaving(true);
@@ -149,18 +167,19 @@ export default function DeviceConfig() {
         render_type: editRenderType ?? "H",
         render_speed: Number.isFinite(editRenderSpeed) ? editRenderSpeed : 3,
       };
+
       const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
-      
-      await loadDevice(); 
-      
-      // 3. Use Toast instead of on-screen message
-      toast("Settings saved successfully!");
 
+      if (!res.ok)
+        throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+
+      await loadDevice(); // refresh + reset to read-only
+      onSaved?.();
+      toast("Settings saved successfully!");
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save device settings");
     } finally {
@@ -168,121 +187,229 @@ export default function DeviceConfig() {
     }
   }
 
-  // --- Render ---
 
-  if (!deviceId) return <div className="dv-container dv-alert">Error: No device ID provided.</div>;
-  if (loading) return <div className="dv-container dv-muted">Loading device details…</div>;
-  if (err && !device) return <div className="dv-container dv-alert">Error: {err}</div>;
-  if (!device) return <div className="dv-container dv-alert">Device not found.</div>;
-  
+  function startEditing() {
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    if (!device) {
+      setIsEditing(false);
+      return;
+    }
+    // revert fields back to device values
+    setEditName(device.name);
+    setEditTimezoneId(device.timezone_id || "");
+    setEditRenderType(device.render_type || "H");
+    setEditRenderSpeed(
+      typeof device.render_speed === "number" ? device.render_speed : 3
+    );
+    setIsEditing(false);
+  }
+
+  // --------- render states ---------
+
+  if (loading && !device) {
+    return <div className="dv-muted">Loading device details…</div>;
+  }
+  if (err && !device) {
+    return <div className="dv-alert">Error: {err}</div>;
+  }
+  if (!device) {
+    return <div className="dv-alert">Device not found.</div>;
+  }
+
   const currentTz = device.timezone_id ? tzMap.get(device.timezone_id) : undefined;
 
-
   return (
-    <div className="dv-container">
-        
-        <Link to="/devices" style={{ display: 'block', marginBottom: 12, textDecoration: 'none', color: '#334155', fontWeight: 500 }}>
-            ← Back to Device List
+    <div className={embedded ? "dv-panel-embedded" : "dv-container"}>
+      {!embedded && (
+        <Link
+          to="/devices"
+          style={{
+            display: "block",
+            marginBottom: 12,
+            textDecoration: "none",
+            color: "#334155",
+            fontWeight: 500,
+          }}
+        >
+          ← Back to Device List
         </Link>
-        <h1 className="dv-title">{device.name} Configuration</h1>
-        
-        <div style={{ padding: 16, background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 24 }}>
-            <div className="dv-row-title">Device ID: {device.controller_id}</div>
-            <div className="dv-row-meta" style={{ marginTop: 4 }}>
-                Firmware: <strong>{device.firmware_version ?? 'N/A'}</strong>
-                <span className="dv-sep">•</span> Created: {new Date(device.created_at || '').toLocaleDateString()}
-            </div>
-            <div className="dv-row-meta" style={{ marginTop: 4 }}>
-                Timezone: <strong>{currentTz?.tz_label || 'None'}</strong>
-                <span className="dv-sep">•</span> Animation: <strong>{RENDER_TYPES.find(x => x.value === device.render_type)?.label || 'H'}</strong>
-                <span className="dv-sep">•</span> Speed: <strong>{device.render_speed ?? 3}</strong>
-            </div>
-        </div>
+      )}
+
+      <div className="dv-header-wrap">
+        <h1 className="dv-title">{device.name} Settings</h1>
+
+      </div>
 
       <div className="dv-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Edit Device Settings</h2>
 
-        {/* Only show error alerts here, success is now a toast */}
-        {err && <div className="dv-alert">{err}</div>}
 
-        <form onSubmit={saveDeviceSettings}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-                
-                <div className="dv-field">
-                    <label>Device Name (Friendly Name)</label>
-                    <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        placeholder="e.g. Living Room Ticker"
-                        required
-                    />
-                </div>
+        {err && (
+          <div className="dv-alert" style={{ marginBottom: 16 }}>
+            {err}
+          </div>
+        )}
 
-                <div className="dv-field">
-                    <label>Timezone</label>
-                    <select
-                        value={editTimezoneId}
-                        onChange={(e) => setEditTimezoneId(e.target.value)}
-                        required
-                        disabled={tzLoading || timezones.length === 0}
-                    >
-                        {tzLoading || timezones.length === 0 ? (
-                            <option value="">(loading…)</option>
-                        ) : (
-                            timezones.map((tz) => (
-                                <option key={tz.id} value={tz.id}>
-                                    {tz.tz_label} — {tz.tz_name}
-                                </option>
-                            ))
-                        )}
-                    </select>
-                </div>
-
-                <div className="dv-field">
-                    <label>Animation Type</label>
-                    <select
-                        value={editRenderType}
-                        onChange={(e) => setEditRenderType(e.target.value as Device["render_type"])}
-                    >
-                        {RENDER_TYPES.map((rt) => (
-                            <option key={rt.value} value={rt.value || "H"}>
-                                {rt.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="dv-field">
-                    <label>Animation Speed (1-100)</label>
-                    <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={editRenderSpeed}
-                        onChange={(e) => setEditRenderSpeed(parseInt(e.target.value || "3", 10))}
-                    />
-                </div>
+        <form>
+          <div
+            className="dv-settings-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 20,
+              marginBottom: 24,
+            }}
+          >
+            <div className="dv-field">
+              <label>Device Name (up to 30 characters)</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => {
+                  const value = e.target.value.slice(0, 30); // cap at 30 chars
+                  setEditName(value);
+                }}
+                placeholder="e.g. Basement"
+                disabled={!isEditing}
+                className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
+              />
             </div>
 
-            <div className="dv-actions" style={{ justifyContent: 'flex-start' }}>
-                <button
-                    className="dv-btn dv-btn-primary"
-                    type="submit"
-                    disabled={saving || tzLoading || !editTimezoneId}
-                >
-                    {saving ? "Saving…" : "Save Changes"}
-                </button>
-                <button
-                    className="dv-btn"
-                    type="button"
-                    onClick={() => navigate(`/devices/${deviceId}/teams`)}
-                >
-                    Go to Teams Configuration →
-                </button>
+            <div className="dv-field">
+              <label>Timezone</label>
+              <select
+                value={editTimezoneId}
+                onChange={(e) => setEditTimezoneId(e.target.value)}
+                disabled={!isEditing || tzLoading || timezones.length === 0}
+                className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
+              >
+                {tzLoading || timezones.length === 0 ? (
+                  <option value="">
+                    {tzLoading ? "(loading…)" : "(no timezones available)"}
+                  </option>
+                ) : (
+                  timezones.map((tz) => (
+                    <option key={tz.id} value={tz.id}>
+                      {tz.tz_label} — {tz.tz_name}
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
+
+            <div className="dv-field">
+              <label>Animation Type</label>
+              <select
+                value={editRenderType}
+                onChange={(e) =>
+                  setEditRenderType(e.target.value as Device["render_type"])
+                }
+                disabled={!isEditing}
+                className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
+              >
+                {RENDER_TYPES.map((rt) => (
+                  <option key={rt.value} value={rt.value || "H"}>
+                    {rt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="dv-field">
+              <label>Animation Speed (1-100)</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={editRenderSpeed}
+                onChange={(e) => {
+                  let value = e.target.value;
+
+                  // Allow empty while typing
+                  if (value === "") {
+                    setEditRenderSpeed(NaN);
+                    return;
+                  }
+
+                  // Convert to number
+                  let num = parseInt(value, 10);
+
+                  // Clamp between 1 and 100
+                  if (num < 1) num = 1;
+                  if (num > 100) num = 100;
+
+                  setEditRenderSpeed(num);
+                }}
+
+                disabled={!isEditing}
+                className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
+              />
+            </div>
+          </div>
+
+          <div className="dv-actions" style={{ justifyContent: "flex-start" }}>
+            {isEditing ? (
+              <>
+                <button
+                  className="dv-btn dv-btn-primary"
+                  type="button"
+                  onClick={saveDeviceSettings}
+                  disabled={saving || tzLoading || !editTimezoneId}
+                >
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+
+                <button
+                  className="dv-btn"
+                  type="button"
+                  onClick={cancelEditing}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="dv-btn"
+                  type="button"
+                  onClick={() => navigate(`/devices/${deviceId}/teams`)}
+                >
+                  Go to Teams Configuration →
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="dv-btn dv-btn-primary"
+                  type="button"
+                  onClick={startEditing}
+                >
+                  Edit Settings
+                </button>
+                <button
+                  className="dv-btn"
+                  type="button"
+                  onClick={() => navigate(`/devices/${deviceId}/teams`)}
+                >
+                  Go to Teams Configuration →
+                </button>
+              </>
+            )}
+          </div>
         </form>
       </div>
     </div>
   );
+}
+
+export default function DeviceConfig() {
+  const { deviceId } = useParams<{ deviceId: string }>();
+
+  if (!deviceId) {
+    return (
+      <div className="dv-container dv-alert">Error: No device ID provided.</div>
+    );
+  }
+
+  return <DeviceConfigPanel deviceId={deviceId} />;
 }
