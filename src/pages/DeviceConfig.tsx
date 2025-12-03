@@ -253,15 +253,15 @@ export function DeviceConfigPanel({
         )}
 
         <form>
-          <div
-            className="dv-settings-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 20,
-              marginBottom: 24,
-            }}
-          >
+            <div
+              className="dv-settings-grid"
+              style={{
+                display: "grid",
+                gap: 20,
+                marginBottom: 24,
+              }}
+            >
+
             <div className="dv-field">
               <label>Device Name (up to 30 characters)</label>
               <input
