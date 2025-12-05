@@ -44,6 +44,8 @@ export default function DeviceTeams() {
   const [selected, setSelected] = useState<SelectedTeam[]>([]);
   
   // --- New Settings State ---
+  const [deviceName, setDeviceName] = useState<string>("");         // <--- ADD THIS
+  const [controllerId, setControllerId] = useState<string>("");     // <--- ADD THIS
   const [showFinals, setShowFinals] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(true);
   const [daysAdvance, setDaysAdvance] = useState(3);
@@ -73,6 +75,10 @@ export default function DeviceTeams() {
             setShowFinals(devData.sports_show_final_games ?? true);
             setShowUpcoming(devData.sports_show_next_upcoming_games ?? true);
             setDaysAdvance(devData.sports_show_next_upcoming_game_days_in_advance ?? 3);
+	    // --- ADD THESE TWO LINES ---
+            setDeviceName(devData.name || "");
+            setControllerId(devData.controller_id || "");
+            // ----------
           }
         }
 
@@ -285,7 +291,7 @@ export default function DeviceTeams() {
     return (
       <div className="page">
         <div className="header">
-          <div><div className="h1">Data Settings</div><div className="sub">Loading…</div></div>
+          //<div><div className="h1">Data Settings</div><div className="sub">Loading…</div></div>
         </div>
       </div>
     );
@@ -297,7 +303,7 @@ export default function DeviceTeams() {
       <div className="header">
         <div>
           <button className="btn link" onClick={() => navigate(-1)}>← Back</button>
-          <div className="h1">Data Settings</div>
+	  <div className="h1">Data Settings: {deviceName} <span style={{fontSize: "0.6em", opacity: 0.6}}>({controllerId})</span></div>
           <div className="sub">Manage content and settings.</div>
         </div>
         <button className="btn primary" disabled={saving} onClick={save}>
