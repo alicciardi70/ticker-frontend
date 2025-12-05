@@ -143,12 +143,20 @@ export function DeviceConfigPanel({
 
   // --------- save / cancel ---------
 
-  async function saveDeviceSettings() {
-    if (!isEditing) return; // guard: don't save if not in edit mode
+async function saveDeviceSettings() {
+    console.log("[DEBUG] saveDeviceSettings: Started."); 
+
+    if (!isEditing) {
+        console.log("[DEBUG] saveDeviceSettings: Not in edit mode, aborting.");
+        return;
+    }
 
     setErr(null);
 
-    if (!deviceId || !device) return;
+    if (!deviceId || !device) {
+        console.error("[DEBUG] saveDeviceSettings: Missing deviceId or device data.");
+        return;
+    }
     if (!editTimezoneId) {
       setErr("Please select a timezone.");
       return;
@@ -168,25 +176,39 @@ export function DeviceConfigPanel({
         render_speed: Number.isFinite(editRenderSpeed) ? editRenderSpeed : 3,
       };
 
-      const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
-        method: "PATCH",
+      const targetUrl = `${API_BASE}/devices/${deviceId}`;
+      
+      // [DEBUG] Log the exact payload and URL
+      console.log(`[DEBUG] Target URL: ${targetUrl}`);
+      console.log(`[DEBUG] Method: PUT`); // We are fixing this to PUT
+      console.log(`[DEBUG] Payload:`, body);
+
+      // --- THE FIX: Changed 'PATCH' to 'PUT' to match devices.py ---
+      const res = await fetch(targetUrl, {
+        method: "PUT", 
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
 
-      if (!res.ok)
-        throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      console.log(`[DEBUG] Response Status: ${res.status} ${res.statusText}`);
 
-      await loadDevice(); // refresh + reset to read-only
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => `HTTP ${res.status}`);
+        console.error(`[DEBUG] Server Error Body:`, errorText);
+        throw new Error(errorText);
+      }
+
+      console.log("[DEBUG] Update successful. Reloading device data...");
+      await loadDevice(); 
       onSaved?.();
       toast("Settings saved successfully!");
     } catch (e: any) {
+      console.error("[DEBUG] Exception in saveDeviceSettings:", e);
       setErr(e?.message ?? "Failed to save device settings");
     } finally {
       setSaving(false);
     }
   }
-
 
   function startEditing() {
     setIsEditing(true);
@@ -374,7 +396,7 @@ export function DeviceConfigPanel({
                   type="button"
                   onClick={() => navigate(`/devices/${deviceId}/teams`)}
                 >
-                  Go to Teams Configuration →
+                  Next: Data Settings →
                 </button>
               </>
             ) : (
@@ -391,7 +413,7 @@ export function DeviceConfigPanel({
                   type="button"
                   onClick={() => navigate(`/devices/${deviceId}/teams`)}
                 >
-                  Go to Teams Configuration →
+                  Next: Data Settings →
                 </button>
               </>
             )}

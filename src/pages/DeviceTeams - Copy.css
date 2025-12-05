@@ -1,0 +1,386 @@
+:root {
+  --bg: #f6f7fb;
+  --panel: #fff;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --text: #0f172a;
+  --primary: #2563eb;
+  --primary-600: #1d4ed8;
+  --danger: #dc2626;
+  --green: #16a34a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+  /* Modern Font Stack */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Widen the whole page so both columns get more room */
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* Force form elements to inherit the font */
+button, input, select {
+  font-family: inherit;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.sub {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn:hover {
+  background: #fafafa;
+}
+
+.btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.btn.primary:hover {
+  background: #149246;
+}
+
+.btn.link {
+  color: #2563eb;
+  border-color: transparent;
+  background: transparent;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+  flex-wrap: wrap; 
+}
+
+.pills {
+  display: flex;
+  gap: 6px;
+  background: #eef2ff;
+  padding: 6px;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.pill {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.pill.active {
+  background: #fff;
+  box-shadow: var(--shadow);
+  font-weight: 600;
+}
+
+.search {
+  position: relative;
+  margin-left: auto;
+}
+
+.search input {
+  width: 320px;
+  padding: 10px 12px 10px 34px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.search span {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* --- MAIN LAYOUT (CSS Grid Areas) --- */
+.main {
+  display: grid;
+  gap: 28px;
+  
+  /* DEFAULT (Mobile): Single column, Sidebar on TOP */
+  grid-template-columns: 1fr;
+  grid-template-areas: 
+    "sidebar"
+    "catalog";
+}
+
+/* 1. Target the Team Catalog (The first div) */
+.main > div:first-of-type {
+  grid-area: catalog;
+}
+
+/* 2. Target the Selected Sidebar */
+.aside {
+  grid-area: sidebar;
+  width: 100%;
+  position: static; /* No sticky on mobile */
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  height: fit-content;
+}
+
+/* --- DESKTOP OVERRIDE --- */
+@media (min-width: 1024px) {
+  .main {
+    /* Desktop: Two columns, Sidebar on RIGHT */
+    grid-template-columns: 1fr 460px;
+    grid-template-areas: 
+      "catalog sidebar";
+  }
+
+  .aside {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+/* selectable teams grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  /* On very small screens, make the team grid single column */
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  transition: 0.15s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow);
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 999px;
+  transition: 0.15s;
+  box-shadow: var(--shadow);
+}
+
+.switch.on {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.switch.on::after {
+  transform: translateX(22px);
+}
+
+.aside-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+}
+
+.aside-h .count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.list {
+  max-height: 70vh;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.small-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.row-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.row .actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.icon-btn:hover {
+  background: #f8fafc;
+}
+
+.icon-btn.danger {
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+.inline-controls {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.text-input {
+  width: 88px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.select {
+  min-width: 92px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+  flex-wrap: wrap; /* allow buttons to wrap on tiny screens */
+  gap: 8px;
+}
+
+.badge {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}

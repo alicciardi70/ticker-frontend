@@ -144,7 +144,7 @@ export default function Nav() {
         {/* LOGO */}
         <Link to="/" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img 
-            src="/logo.png" 
+            src="/logo_blue.jpg" 
             alt="Ticker Ink" 
             style={{ 
               height: isMobile ? "70px" : "120px", 
