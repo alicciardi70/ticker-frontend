@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "../lib/api";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import "./Devices.css";
 
@@ -46,7 +46,6 @@ export function DeviceConfigPanel({
   onClose,
   onSaved,
 }: DeviceConfigPanelProps) {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [timezones, setTimezones] = useState<Timezone[]>([]);
@@ -143,20 +142,11 @@ export function DeviceConfigPanel({
 
   // --------- save / cancel ---------
 
-async function saveDeviceSettings() {
-    console.log("[DEBUG] saveDeviceSettings: Started."); 
-
-    if (!isEditing) {
-        console.log("[DEBUG] saveDeviceSettings: Not in edit mode, aborting.");
-        return;
-    }
+  async function saveDeviceSettings() {
+    if (!isEditing) return;
 
     setErr(null);
-
-    if (!deviceId || !device) {
-        console.error("[DEBUG] saveDeviceSettings: Missing deviceId or device data.");
-        return;
-    }
+    if (!deviceId || !device) return;
     if (!editTimezoneId) {
       setErr("Please select a timezone.");
       return;
@@ -176,34 +166,20 @@ async function saveDeviceSettings() {
         render_speed: Number.isFinite(editRenderSpeed) ? editRenderSpeed : 3,
       };
 
-      const targetUrl = `${API_BASE}/devices/${deviceId}`;
-      
-      // [DEBUG] Log the exact payload and URL
-      console.log(`[DEBUG] Target URL: ${targetUrl}`);
-      console.log(`[DEBUG] Method: PUT`); // We are fixing this to PUT
-      console.log(`[DEBUG] Payload:`, body);
-
-      // --- THE FIX: Changed 'PATCH' to 'PUT' to match devices.py ---
-      const res = await fetch(targetUrl, {
-        method: "PUT", 
+      const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
 
-      console.log(`[DEBUG] Response Status: ${res.status} ${res.statusText}`);
-
       if (!res.ok) {
-        const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-        console.error(`[DEBUG] Server Error Body:`, errorText);
-        throw new Error(errorText);
+        throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       }
 
-      console.log("[DEBUG] Update successful. Reloading device data...");
-      await loadDevice(); 
+      await loadDevice();
       onSaved?.();
       toast("Settings saved successfully!");
     } catch (e: any) {
-      console.error("[DEBUG] Exception in saveDeviceSettings:", e);
       setErr(e?.message ?? "Failed to save device settings");
     } finally {
       setSaving(false);
@@ -219,7 +195,6 @@ async function saveDeviceSettings() {
       setIsEditing(false);
       return;
     }
-    // revert fields back to device values
     setEditName(device.name);
     setEditTimezoneId(device.timezone_id || "");
     setEditRenderType(device.render_type || "H");
@@ -241,8 +216,6 @@ async function saveDeviceSettings() {
     return <div className="dv-alert">Device not found.</div>;
   }
 
-  const currentTz = device.timezone_id ? tzMap.get(device.timezone_id) : undefined;
-
   return (
     <div className={embedded ? "dv-panel-embedded" : "dv-container"}>
       {!embedded && (
@@ -260,14 +233,52 @@ async function saveDeviceSettings() {
         </Link>
       )}
 
-      <div className="dv-header-wrap">
-        <h1 className="dv-title">{device.name} Settings</h1>
+      {/* HEADER ROW WITH BUTTONS */}
+      <div 
+        className="dv-header-wrap" 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 20 
+        }}
+      >
+        <h1 className="dv-title" style={{ margin: 0, fontSize: '1.5rem' }}>{device.name} Settings</h1>
 
+        <div className="dv-actions" style={{ margin: 0 }}>
+          {isEditing ? (
+            <>
+              <button
+                className="dv-btn dv-btn-primary"
+                type="button"
+                onClick={saveDeviceSettings}
+                disabled={saving || tzLoading || !editTimezoneId}
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+
+              <button
+                className="dv-btn"
+                type="button"
+                onClick={cancelEditing}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              className="dv-btn dv-btn-primary"
+              type="button"
+              onClick={startEditing}
+            >
+              Edit Settings
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="dv-card" style={{ padding: 24 }}>
-
-
         {err && (
           <div className="dv-alert" style={{ marginBottom: 16 }}>
             {err}
@@ -280,20 +291,14 @@ async function saveDeviceSettings() {
               style={{
                 display: "grid",
                 gap: 20,
-                marginBottom: 24,
               }}
             >
-
             <div className="dv-field">
-              <label>Device Name (up to 30 characters)</label>
+              <label>Device Name</label>
               <input
                 type="text"
                 value={editName}
-                onChange={(e) => {
-                  const value = e.target.value.slice(0, 30); // cap at 30 chars
-                  setEditName(value);
-                }}
-                placeholder="e.g. Basement"
+                onChange={(e) => setEditName(e.target.value.slice(0, 30))}
                 disabled={!isEditing}
                 className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
               />
@@ -304,13 +309,11 @@ async function saveDeviceSettings() {
               <select
                 value={editTimezoneId}
                 onChange={(e) => setEditTimezoneId(e.target.value)}
-                disabled={!isEditing || tzLoading || timezones.length === 0}
+                disabled={!isEditing || tzLoading}
                 className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
               >
                 {tzLoading || timezones.length === 0 ? (
-                  <option value="">
-                    {tzLoading ? "(loading…)" : "(no timezones available)"}
-                  </option>
+                  <option value="">(Loading...)</option>
                 ) : (
                   timezones.map((tz) => (
                     <option key={tz.id} value={tz.id}>
@@ -325,9 +328,7 @@ async function saveDeviceSettings() {
               <label>Animation Type</label>
               <select
                 value={editRenderType}
-                onChange={(e) =>
-                  setEditRenderType(e.target.value as Device["render_type"])
-                }
+                onChange={(e) => setEditRenderType(e.target.value as any)}
                 disabled={!isEditing}
                 className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
               >
@@ -346,92 +347,14 @@ async function saveDeviceSettings() {
                 min={1}
                 max={100}
                 value={editRenderSpeed}
-                onChange={(e) => {
-                  let value = e.target.value;
-
-                  // Allow empty while typing
-                  if (value === "") {
-                    setEditRenderSpeed(NaN);
-                    return;
-                  }
-
-                  // Convert to number
-                  let num = parseInt(value, 10);
-
-                  // Clamp between 1 and 100
-                  if (num < 1) num = 1;
-                  if (num > 100) num = 100;
-
-                  setEditRenderSpeed(num);
-                }}
-
+                onChange={(e) => setEditRenderSpeed(parseInt(e.target.value) || 3)}
                 disabled={!isEditing}
                 className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
               />
             </div>
           </div>
-
-          <div className="dv-actions" style={{ justifyContent: "flex-start" }}>
-            {isEditing ? (
-              <>
-                <button
-                  className="dv-btn dv-btn-primary"
-                  type="button"
-                  onClick={saveDeviceSettings}
-                  disabled={saving || tzLoading || !editTimezoneId}
-                >
-                  {saving ? "Saving…" : "Save Changes"}
-                </button>
-
-                <button
-                  className="dv-btn"
-                  type="button"
-                  onClick={cancelEditing}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="dv-btn"
-                  type="button"
-                  onClick={() => navigate(`/devices/${deviceId}/teams`)}
-                >
-                  Next: Data Settings →
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="dv-btn dv-btn-primary"
-                  type="button"
-                  onClick={startEditing}
-                >
-                  Edit Settings
-                </button>
-                <button
-                  className="dv-btn"
-                  type="button"
-                  onClick={() => navigate(`/devices/${deviceId}/teams`)}
-                >
-                  Next: Data Settings →
-                </button>
-              </>
-            )}
-          </div>
         </form>
       </div>
     </div>
   );
-}
-
-export default function DeviceConfig() {
-  const { deviceId } = useParams<{ deviceId: string }>();
-
-  if (!deviceId) {
-    return (
-      <div className="dv-container dv-alert">Error: No device ID provided.</div>
-    );
-  }
-
-  return <DeviceConfigPanel deviceId={deviceId} />;
 }
