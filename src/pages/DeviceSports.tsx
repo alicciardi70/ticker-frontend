@@ -22,9 +22,9 @@ type SelectedTeam = {
   display_text?: string | null;
   color?: string;
 };
-const COLORS = ["white", "red", "green", "blue", "yellow"] as const;
-const LEAGUES = ["ALL", "MLB", "NFL", "NBA", "NHL", "MLS"] as const;
-const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽" };
+const COLORS = ["white", "red", "green", "blue", "yellow", "yellow"] as const;
+const LEAGUES = ["ALL", "MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
+const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽", EPL: "⚽" };
 
 interface Props {
   deviceId: string;
