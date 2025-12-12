@@ -19,10 +19,8 @@ type Team = {
 type SelectedTeam = {
   team_id: string;
   display_order: number;
-  display_text?: string | null;
-  color?: string;
+
 };
-const COLORS = ["white", "red", "green", "blue", "yellow", "yellow"] as const;
 const LEAGUES = ["ALL", "MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
 const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽", EPL: "⚽" };
 
@@ -45,9 +43,9 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   const [q, setQ] = useState("");
 
   // Global Sports Settings
-  const [showFinals, setShowFinals] = useState(true);
+  
   const [showUpcoming, setShowUpcoming] = useState(true);
-  const [daysAdvance, setDaysAdvance] = useState(3);
+  
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -56,9 +54,9 @@ export function DeviceSportsPanel({ deviceId }: Props) {
       const devRes = await fetch(`${API_BASE}/devices/${deviceId}`, { headers: authHeaders() });
       if (devRes.ok) {
         const d = await devRes.json();
-        setShowFinals(d.sports_show_final_games ?? true);
+   
         setShowUpcoming(d.sports_show_next_upcoming_games ?? true);
-        setDaysAdvance(d.sports_show_next_upcoming_game_days_in_advance ?? 3);
+
       }
 
       let r = await fetch(`${API_BASE}/devices/${deviceId}/teams/available`, { headers: authHeaders() });
@@ -81,8 +79,6 @@ export function DeviceSportsPanel({ deviceId }: Props) {
             .map((x: any, i: number) => ({
               team_id: String(x.team_id ?? x.id),
               display_order: x.order ?? x.display_order ?? i + 1,
-              display_text: x.display_text ?? null,
-              color: x.color ?? "white",
             }))
         );
       } else {
@@ -93,8 +89,6 @@ export function DeviceSportsPanel({ deviceId }: Props) {
          setSelected((data.selected ?? []).map((x: any, i: number) => ({
              team_id: String(x.team_id ?? x.id),
              display_order: x.display_order ?? i+1,
-             display_text: x.display_text ?? null,
-             color: x.color ?? "white"
          })));
       }
     } catch (e: any) {
@@ -135,8 +129,6 @@ export function DeviceSportsPanel({ deviceId }: Props) {
       return [...prev, { 
           team_id: id, 
           display_order: prev.length + 1, 
-          display_text: (t?.short_name || t?.name || "").slice(0, 5) || null,
-          color: "white" 
       }];
     });
   };
@@ -150,17 +142,14 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
         const settingsPayload = {
             ...currentData,
-            sports_show_final_games: showFinals,
+
             sports_show_next_upcoming_games: showUpcoming,
-            sports_show_next_upcoming_game_days_in_advance: daysAdvance,
         };
 
         const teamsPayload = {
             teams: selected.map((t, i) => ({
                 team_id: t.team_id,
                 display_order: i + 1,
-                display_text: (t.display_text || "").slice(0, 5) || null,
-                color: t.color || "white",
             }))
         };
 
@@ -202,9 +191,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
      })
   };
 
-  const updateSel = (id: string, field: keyof SelectedTeam, val: any) => {
-      setSelected(prev => prev.map(p => p.team_id === id ? { ...p, [field]: val } : p));
-  };
+
   const remove = (id: string) => setSelected(prev => prev.filter(p => p.team_id !== id));
 
   if (loading) return <div className="dv-muted">Loading sports...</div>;
@@ -232,20 +219,12 @@ export function DeviceSportsPanel({ deviceId }: Props) {
        {/* Global Settings Box */}
        <div className="config-panel">
             <div className="panel-row">
-              <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-                <input type="checkbox" checked={showFinals} onChange={e => setShowFinals(e.target.checked)} disabled={!isEditing} />
-                Show Final Scores
-              </label>
+
               <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
                 <input type="checkbox" checked={showUpcoming} onChange={e => setShowUpcoming(e.target.checked)} disabled={!isEditing} />
                 Show Upcoming Games
               </label>
-              <div className="input-group" style={{ opacity: showUpcoming ? 1 : 0.4 }}>
-                <label>Days in Advance:</label>
-                {isEditing ? (
-                    <input type="number" min={0} max={7} value={daysAdvance} onChange={e => setDaysAdvance(Number(e.target.value))} className="number-input" disabled={!showUpcoming} />
-                ) : ( <span style={{fontWeight:600}}>{daysAdvance}</span> )}
-              </div>
+
             </div>
         </div>
 
@@ -295,24 +274,13 @@ export function DeviceSportsPanel({ deviceId }: Props) {
                                 </div>
                                 {isEditing ? (
                                     <>
-                                        <div className="inline-controls">
-                                            <input className="text-input" value={s.display_text||""} onChange={e=>updateSel(s.team_id, 'display_text', e.target.value)} placeholder="Text" maxLength={5} />
-                                            <select className="select" value={s.color||"white"} onChange={e=>updateSel(s.team_id, 'color', e.target.value)}>
-                                                {COLORS.map(c=><option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
                                         <div className="actions">
                                             <button className="icon-btn" onClick={()=>move(s.team_id, -1)}>↑</button>
                                             <button className="icon-btn" onClick={()=>move(s.team_id, 1)}>↓</button>
                                             <button className="icon-btn danger" onClick={()=>remove(s.team_id)}>✕</button>
                                         </div>
                                     </>
-                                ) : (
-                                    <div className="inline-controls" style={{opacity:0.7}}>
-                                        {s.display_text && <span className="badge">{s.display_text}</span>}
-                                        <span className="badge" style={{background:s.color==="white"?"#eee":s.color, color:s.color==="white"?"black":"white"}}>{s.color}</span>
-                                    </div>
-                                )}
+                                ) : null}
                             </li>
                         );
                     })}
