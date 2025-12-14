@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // <--- 1. Import useParams
 import { API_BASE } from "../lib/api";
 import "./Devices.css";
-// We only need the main Teams panel now, as Config is inside it
 import { DeviceTeamsPanel } from "./DeviceTeams";
 
 type Device = {
@@ -21,6 +21,8 @@ function authHeaders() {
 }
 
 export default function Devices() {
+  const { deviceId } = useParams(); // <--- 2. Get ID from URL (if present)
+  
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -46,10 +48,16 @@ export default function Devices() {
       const data = await res.json();
       setDevices(data);
       
-      // Default to 1st device if available and none selected
-      if (data.length > 0 && !selectedDeviceId) {
-        setSelectedDeviceId(data[0].id);
+      // --- 3. LOGIC UPDATE: Deep Linking ---
+      if (deviceId) {
+          // If URL has an ID (clicked from Home), use it
+          setSelectedDeviceId(deviceId);
+      } else if (data.length > 0 && !selectedDeviceId) {
+          // Otherwise default to the first device
+          setSelectedDeviceId(data[0].id);
       }
+      // -------------------------------------
+
     } catch (e: any) {
       setErr(e?.message ?? "Failed to load devices");
     } finally {
@@ -59,7 +67,7 @@ export default function Devices() {
 
   useEffect(() => {
     loadDevices();
-  }, []);
+  }, [deviceId]); // <--- 4. Re-run if URL parameter changes
 
   // -- Render Helper: Top Device Ribbon --
   const renderDeviceRibbon = () => {

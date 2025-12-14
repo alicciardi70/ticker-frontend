@@ -20,11 +20,18 @@ type CryptoItem = {
   code: string;
   currency: string;
   description: string;
+  image_url?: string | null;
   // UI State
   selected: boolean;
   order: number;
   display_text?: string;
   color?: string;
+};
+
+const getIconSrc = (url: string | null | undefined) => {
+    if (!url) return undefined;
+    if (url.startsWith("http")) return url; // Remote URL (LCW)
+    return `/${url}`; // Local path (legacy icons)
 };
 
 // --- NEW COMPONENT: Live Crypto Search ---
@@ -169,13 +176,11 @@ export function DeviceFinancePanel({ deviceId }: Props) {
       .sort((a, b) => a.order - b.order);
   }, [cryptoData]);
 
-  // --- NEW: Handle selection from the "Widget" ---
-  const handleLiveSearchSelect = (coin: any) => {
-      // 1. Normalize data
-      const symbol = coin.symbol.toLowerCase(); // "btc"
-      const pair = `${symbol}usd`; // assume USD for now
-      
-      // 2. Check local list
+// --- NEW: Handle selection from the "Widget" ---
+  const handleLiveSearchSelect = async (coin: any) => {
+      // 1. Optimistic Check: Do we already have it loaded?
+      const symbol = coin.symbol.toLowerCase(); 
+      const pair = `${symbol}usd`; 
       const existing = cryptoData.find(c => c.pair === pair || c.code === symbol);
       
       if (existing) {
@@ -185,8 +190,56 @@ export function DeviceFinancePanel({ deviceId }: Props) {
           }
           toggleSelection(existing.id);
           toast?.(`Added ${existing.description}`);
-      } else {
-          toast?.(`New coin detected: ${coin.name}. (Backend update needed to save this new pair)`);
+          return;
+      }
+
+      // 2. Not found locally? Validate with Backend!
+      const toastId = toast?.("Validating with LiveCoinWatch...", "info"); // hypothetical loading toast if supported
+      
+      try {
+          const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
+              method: 'POST',
+              headers: { 
+                  "Content-Type": "application/json",
+                  ...authHeaders() 
+              },
+              body: JSON.stringify({
+                  code: coin.symbol,
+                  name: coin.name,
+                  image_url: coin.thumb // Pass the CoinGecko image!
+              })
+          });
+
+          if (!res.ok) {
+              const errData = await res.json();
+              throw new Error(errData.detail || "Validation failed");
+          }
+
+          const newCoin = await res.json();
+
+          // 3. Add to local state and select it
+          setCryptoData(prev => {
+              // Create new item object
+              const item: CryptoItem = {
+                  id: newCoin.id,
+                  pair: newCoin.pair,
+                  code: newCoin.code,
+                  currency: "usd",
+                  description: newCoin.description,
+                  image_url: newCoin.image_url,
+                  selected: true, // Auto-select!
+                  order: prev.filter(p => p.selected).length + 1,
+                  display_text: newCoin.code.toUpperCase(),
+                  color: 'white'
+              };
+              return [...prev, item];
+          });
+
+          toast?.(`Success! Added ${newCoin.description}`);
+
+      } catch (e: any) {
+          console.error(e);
+          toast?.(`Cannot add ${coin.name}: ${e.message}`, "error");
       }
   };
 
@@ -359,7 +412,13 @@ return (
                     ) : (
                         cryptoData.map(item => (
                             <div key={item.id} className="card">
-                                <div className="logo" style={{ fontSize: 24 }}>🪙</div>
+                                <div className="logo">
+                                    {item.image_url ? (
+                                        <img src={getIconSrc(item.image_url)} alt={item.code} className="logo" />
+                                    ) : (
+                                        <span style={{ fontSize: 24 }}>🪙</span>
+                                    )}
+                                </div>
                                 <div style={{flex:1, minWidth:0}}>
                                     <div className="title">{item.description}</div>
                                     <div className="meta">{item.pair.toUpperCase()}</div>
@@ -379,12 +438,18 @@ return (
                 <ul className="list">
                     {selectedItems.map(item => (
                         <li key={item.id} className="row">
-                            <div className="small-logo" style={{ fontSize: 20 }}>🪙</div>
+                            <div className="small-logo">
+                                {item.image_url ? (
+                                    <img src={getIconSrc(item.image_url)} alt={item.code} className="small-logo" />
+                                ) : (
+                                    <span style={{ fontSize: 20 }}>🪙</span>
+                                )}
+                            </div>
+                            {/* -------------------------------- */}
                             <div style={{flex:1}}>
                                 <div className="row-title">{item.description}</div>
                                 <div style={{ fontSize: 11, color: '#888' }}>{item.pair.toUpperCase()}</div>
-                            </div>
-                            
+                            </div>                            
                             <div style={{ 
                                 background: '#eee', 
                                 padding: '2px 8px', 
