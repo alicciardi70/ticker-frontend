@@ -21,7 +21,7 @@ type SelectedTeam = {
   display_order: number;
 
 };
-const LEAGUES = ["ALL", "MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
+const LEAGUES = ["MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
 const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽", EPL: "⚽" };
 
 interface Props {
@@ -40,7 +40,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   
   // Filters
   const [league, setLeague] = useState<string>("MLB");
-  const [q, setQ] = useState("");
+
 
   // Global Sports Settings
   
@@ -107,12 +107,10 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   }, [allTeams]);
 
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return allTeams
-      .filter((t) => (league === "ALL" ? true : t.league_id === league))
-      .filter((t) => !needle || `${t.market} ${t.name}`.toLowerCase().includes(needle))
-      .sort((a, b) => `${a.market}${a.name}`.localeCompare(`${b.market}${b.name}`));
-  }, [allTeams, league, q]);
+      return allTeams
+        .filter((t) => t.league_id === league)
+        .sort((a, b) => `${a.market}${a.name}`.localeCompare(`${b.market}${b.name}`));
+    }, [allTeams, league]);
 
   const isSelected = (id: string) => selected.some((s) => s.team_id === id);
 
@@ -133,50 +131,54 @@ export function DeviceSportsPanel({ deviceId }: Props) {
     });
   };
 
-  const save = async () => {
+const save = async () => {
     setSaving(true);
     try {
-        const getRes = await fetch(`${API_BASE}/devices/${deviceId}`, { headers: authHeaders() });
-        if(!getRes.ok) throw new Error("Failed to fetch device context");
-        const currentData = await getRes.json();
-
+        // 1. Save Globals (Clean Payload - No Fetch Needed)
         const settingsPayload = {
-            ...currentData,
-
-            sports_show_next_upcoming_games: showUpcoming,
+            finance_show_hourly_change: showHourly,
+            finance_show_daily_change: showDaily,
+            finance_show_weekly_change: showWeekly,
         };
+        
+        const r1 = await fetch(`${API_BASE}/devices/${deviceId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(settingsPayload),
+        });
 
-        const teamsPayload = {
-            teams: selected.map((t, i) => ({
-                team_id: t.team_id,
+        if (!r1.ok) throw new Error("Failed to save global settings");
+
+        // 2. Save Crypto Config
+        const cryptoPayload = {
+            items: selectedItems.map((item, i) => ({
+                crypto_pair_id: item.id,
                 display_order: i + 1,
+                display_text: item.display_text,
+                color: item.color,
+                // Pass globals down to item config as well
+                hourly_change: showHourly, 
+                daily_change: showDaily,
+                weekly_change: showWeekly
             }))
         };
 
-        const [r1, r2] = await Promise.all([
-            fetch(`${API_BASE}/devices/${deviceId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify(settingsPayload),
-            }),
-            fetch(`${API_BASE}/devices/${deviceId}/teams`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify(teamsPayload),
-            })
-        ]);
+        const r2 = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(cryptoPayload),
+        });
 
-        if (!r1.ok) throw new Error("Failed to save settings");
-        if (!r2.ok) throw new Error("Failed to save teams");
+        if (!r2.ok) throw new Error("Failed to save crypto config");
 
         setIsEditing(false);
+        loadData(); 
     } catch (e: any) {
         setErr(e.message);
     } finally {
         setSaving(false);
     }
   };
-
   const cancel = () => { setIsEditing(false); loadData(); };
   
   const move = (id: string, dir: -1 | 1) => {
@@ -233,9 +235,6 @@ export function DeviceSportsPanel({ deviceId }: Props) {
             <div className="toolbar">
                 <div className="pills">
                     {LEAGUES.map(L => <button key={L} className={`pill ${league === L ? 'active':''}`} onClick={()=>setLeague(L)}>{L}</button>)}
-                </div>
-                <div className="search">
-                    <input placeholder="Search..." value={q} onChange={e => setQ(e.target.value)} />
                 </div>
             </div>
         )}

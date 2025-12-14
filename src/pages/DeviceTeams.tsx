@@ -45,7 +45,7 @@ export function DeviceTeamsPanel({ deviceId, onDeviceUpdate }: DeviceTeamsPanelP
 
       {category === "SPORTS" && <DeviceSportsPanel deviceId={deviceId} />}
 
-      {category === "FINANCE" && <DeviceFinancePanel />}
+      {category === "FINANCE" && <DeviceFinancePanel deviceId={deviceId} />}
 
       {category === "OTHER" && <DeviceWeatherPanel deviceId={deviceId} />}
       
