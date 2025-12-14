@@ -130,6 +130,7 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   const [showHourly, setShowHourly] = useState(false);
   const [showDaily, setShowDaily]   = useState(false);
   const [showWeekly, setShowWeekly] = useState(false);
+  const [stockKey, setStockKey] = useState("");
 
   // Data
   const [cryptoData, setCryptoData] = useState<CryptoItem[]>([]);
@@ -149,6 +150,7 @@ export function DeviceFinancePanel({ deviceId }: Props) {
         setShowHourly(d.finance_show_hourly_change ?? false);
         setShowDaily(d.finance_show_daily_change ?? false);
         setShowWeekly(d.finance_show_weekly_change ?? false);
+        setStockKey(d.finance_stocks_apikey || "");
       }
 
       // 2. Get Available Crypto
@@ -294,6 +296,7 @@ export function DeviceFinancePanel({ deviceId }: Props) {
             finance_show_hourly_change: showHourly,
             finance_show_daily_change: showDaily,
             finance_show_weekly_change: showWeekly,
+            finance_stocks_apikey: stockKey
         };
         
         const r1 = await fetch(`${API_BASE}/devices/${deviceId}`, {
@@ -405,11 +408,48 @@ return (
         <div className="main">
             {isEditing && (
                 <div className="grid">
-                    {activeTab !== 'Crypto' ? (
-                        <div style={{ padding: 20, color: '#666', gridColumn: '1/-1', textAlign: 'center' }}>
+{/* --- START REPLACEMENT --- */}
+                    {activeTab === 'Stocks' ? (
+                        <div style={{ gridColumn: '1/-1', background: '#f8f9fa', padding: 20, borderRadius: 8, border: '1px solid #eee' }}>
+                            <h4 style={{ marginTop: 0 }}>Stock Market Configuration</h4>
+                            <p style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>
+                                To display live stock prices, you need a free API Key from Finnhub.
+                                <br />
+                                1. <a href="https://finnhub.io/register" target="_blank" rel="noreferrer">Register for a free Finnhub account</a>.
+                                <br />
+                                2. Copy the API Key from your dashboard and paste it below.
+                            </p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <label style={{ fontWeight: 600, fontSize: 12 }}>Finnhub API Key</label>
+                                <input 
+                                    type="text" 
+                                    value={stockKey}
+                                    onChange={(e) => setStockKey(e.target.value)}
+                                    placeholder="Ex: c123456789..."
+                                    disabled={!isEditing}
+                                    style={{ 
+                                        padding: '10px', 
+                                        borderRadius: '6px', 
+                                        border: '1px solid #ccc', 
+                                        fontFamily: 'monospace',
+                                        width: '100%',
+                                        maxWidth: '400px'
+                                    }}
+                                />
+                                {stockKey && isEditing && (
+                                    <div style={{ fontSize: 12, color: 'green' }}>
+                                        ✓ Key will be saved to device
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : activeTab !== 'Crypto' ? (
+                         <div style={{ padding: 20, color: '#666', gridColumn: '1/-1', textAlign: 'center' }}>
                             {activeTab} data sources not connected yet.
                         </div>
                     ) : (
+                    /* --- END REPLACEMENT (Crypto List follows below) --- */
                         cryptoData.map(item => (
                             <div key={item.id} className="card">
                                 <div className="logo">
