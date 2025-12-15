@@ -203,7 +203,7 @@ const save = async () => {
        
        {/* HEADER ROW with Title & Buttons */}
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Global Sports Settings</h3>
+           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Sports Settings</h3>
            <div className="dv-actions" style={{ margin: 0 }}>
                 {isEditing ? (
                     <>
@@ -211,7 +211,7 @@ const save = async () => {
                         <button className="dv-btn" onClick={cancel} disabled={saving}>Cancel</button>
                     </>
                 ) : (
-                    <button className="dv-btn dv-btn-primary" onClick={()=>setIsEditing(true)}>Edit Configuration</button>
+                    <button className="dv-btn dv-btn-primary" onClick={()=>setIsEditing(true)}>Edit Teams</button>
                 )}
            </div>
        </div>
@@ -259,7 +259,7 @@ const save = async () => {
             {/* Selected List (Always visible) */}
             <aside className="aside" style={!isEditing ? { width: '100%', maxWidth: '600px', gridColumn: '1 / -1' } : {}}>
                 <div className="aside-h">
-                    <strong>Selected ({selected.length})</strong>
+                    <strong>Selected Teams({selected.length})</strong>
                 </div>
                 <ul className="list">
                     {selected.map(s => {
