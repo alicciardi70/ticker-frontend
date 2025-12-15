@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+// src/components/DeviceSports.tsx
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import "./DeviceTeams.css";
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
@@ -19,10 +20,17 @@ type Team = {
 type SelectedTeam = {
   team_id: string;
   display_order: number;
-
 };
+
 const LEAGUES = ["MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
 const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽", EPL: "⚽" };
+
+// --- HELPER: Grip Icon for Dragging ---
+const GripIcon = () => (
+    <svg width="12" height="16" viewBox="0 0 6 10" fill="#ccc" style={{ cursor: 'grab', marginRight: 8 }}>
+        <path d="M0 0h2v2H0V0zm4 0h2v2H4V0zM0 4h2v2H0V4zm4 0h2v2H4V4zM0 8h2v2H0V8zm4 0h2v2H4V8z"/>
+    </svg>
+);
 
 interface Props {
   deviceId: string;
@@ -32,7 +40,6 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string>();
-  const [isEditing, setIsEditing] = useState(false);
 
   // Data
   const [allTeams, setAllTeams] = useState<Team[]>([]);
@@ -41,24 +48,25 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   // Filters
   const [league, setLeague] = useState<string>("MLB");
 
-
   // Global Sports Settings
-  
   const [showUpcoming, setShowUpcoming] = useState(true);
-  
+
+  // Drag Refs
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setErr(undefined);
     try {
+      // 1. Get Global Settings
       const devRes = await fetch(`${API_BASE}/devices/${deviceId}`, { headers: authHeaders() });
       if (devRes.ok) {
         const d = await devRes.json();
-   
         setShowUpcoming(d.sports_show_next_upcoming_games ?? true);
-
       }
 
+      // 2. Get Teams
       let r = await fetch(`${API_BASE}/devices/${deviceId}/teams/available`, { headers: authHeaders() });
       
       const toTeam = (x: any): Team => ({
@@ -82,6 +90,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
             }))
         );
       } else {
+         // Fallback legacy endpoint
          r = await fetch(`${API_BASE}/devices/${deviceId}/teams`, { headers: authHeaders() });
          if(!r.ok) throw new Error("Failed to load teams");
          const data = await r.json();
@@ -100,6 +109,93 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // --- AUTO-SAVE LOGIC ---
+  const autoSave = async (newSelected?: SelectedTeam[], newUpcoming?: boolean) => {
+      setSaving(true);
+      try {
+          // Use provided values or fallback to current state
+          const itemsToSave = newSelected !== undefined ? newSelected : selected;
+          const upcomingToSave = newUpcoming !== undefined ? newUpcoming : showUpcoming;
+
+          // 1. Save Globals (if changed)
+          if (newUpcoming !== undefined) {
+            await fetch(`${API_BASE}/devices/${deviceId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", ...authHeaders() },
+                body: JSON.stringify({ sports_show_next_upcoming_games: upcomingToSave }),
+            });
+          }
+
+          // 2. Save Teams (if changed)
+          if (newSelected !== undefined) {
+            const teamsPayload = {
+                teams: itemsToSave.map((item, i) => ({
+                    team_id: item.team_id,
+                    display_order: i + 1
+                }))
+            };
+            await fetch(`${API_BASE}/devices/${deviceId}/teams`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", ...authHeaders() },
+                body: JSON.stringify(teamsPayload),
+            });
+          }
+      } catch (e: any) {
+          console.error("Auto-save failed", e);
+          setErr("Failed to save changes");
+      } finally {
+          setSaving(false);
+      }
+  };
+
+  // --- ACTIONS ---
+
+  const handleGlobalToggle = (val: boolean) => {
+      setShowUpcoming(val);
+      autoSave(undefined, val);
+  };
+
+  const toggleTeam = (id: string) => {
+    let newList;
+    const exists = selected.find(s => s.team_id === id);
+    
+    if (exists) {
+        // Remove
+        newList = selected.filter(s => s.team_id !== id).map((t, i) => ({ ...t, display_order: i + 1 }));
+    } else {
+        // Add
+        newList = [...selected, { team_id: id, display_order: selected.length + 1 }];
+    }
+    
+    setSelected(newList);
+    autoSave(newList);
+  };
+
+  const remove = (id: string) => toggleTeam(id);
+
+  // Drag & Drop Sort
+  const handleSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    if (dragItem.current === dragOverItem.current) return;
+
+    const listCopy = [...selected];
+    const draggedItemContent = listCopy[dragItem.current];
+    
+    listCopy.splice(dragItem.current, 1);
+    listCopy.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    // Reset Display Orders
+    const reordered = listCopy.map((item, index) => ({ ...item, display_order: index + 1 }));
+
+    dragItem.current = null;
+    dragOverItem.current = null;
+
+    setSelected(reordered);
+    autoSave(reordered);
+  };
+
+
+  // --- COMPUTED ---
   const byId = useMemo(() => {
     const m = new Map<string, Team>();
     allTeams.forEach((t) => m.set(t.id, t));
@@ -114,173 +210,86 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
   const isSelected = (id: string) => selected.some((s) => s.team_id === id);
 
-  const toggle = (id: string) => {
-    if (!isEditing) return;
-    setSelected((prev) => {
-      const idx = prev.findIndex((p) => p.team_id === id);
-      if (idx >= 0) {
-        const cp = prev.slice();
-        cp.splice(idx, 1);
-        return cp.map((t, j) => ({ ...t, display_order: j + 1 }));
-      }
-      const t = byId.get(id);
-      return [...prev, { 
-          team_id: id, 
-          display_order: prev.length + 1, 
-      }];
-    });
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-        // 1. Save Global Sports Settings
-        const settingsPayload = {
-            sports_show_next_upcoming_games: showUpcoming
-        };
-        
-        const r1 = await fetch(`${API_BASE}/devices/${deviceId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify(settingsPayload),
-        });
-
-        if (!r1.ok) throw new Error("Failed to save global settings");
-
-        // 2. Save Selected Teams Config
-        const teamsPayload = {
-            teams: selected.map((item, i) => ({
-                team_id: item.team_id,
-                display_order: i + 1
-            }))
-        };
-
-        const r2 = await fetch(`${API_BASE}/devices/${deviceId}/teams`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify(teamsPayload),
-        });
-
-        if (!r2.ok) throw new Error("Failed to save teams config");
-
-        setIsEditing(false);
-        loadData(); 
-    } catch (e: any) {
-        setErr(e.message);
-    } finally {
-        setSaving(false);
-    }
-};  
-  
-  const cancel = () => { setIsEditing(false); loadData(); };
-  
-  const move = (id: string, dir: -1 | 1) => {
-     setSelected(prev => {
-         const i = prev.findIndex(p => p.team_id === id);
-         if(i < 0) return prev;
-         const j = i + dir;
-         if(j < 0 || j >= prev.length) return prev;
-         const cp = prev.slice();
-         [cp[i], cp[j]] = [cp[j], cp[i]];
-         return cp.map((x, k) => ({...x, display_order: k+1}));
-     })
-  };
-
-
-  const remove = (id: string) => setSelected(prev => prev.filter(p => p.team_id !== id));
 
   if (loading) return <div className="dv-muted">Loading sports...</div>;
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
        
-       {/* HEADER ROW with Title & Buttons */}
+       {/* HEADER */}
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
            <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Sports Settings</h3>
-           <div className="dv-actions" style={{ margin: 0 }}>
-                {isEditing ? (
-                    <>
-                        <button className="dv-btn dv-btn-primary" onClick={save} disabled={saving}>{saving?"Saving...":"Save Changes"}</button>
-                        <button className="dv-btn" onClick={cancel} disabled={saving}>Cancel</button>
-                    </>
-                ) : (
-                    <button className="dv-btn dv-btn-primary" onClick={()=>setIsEditing(true)}>Edit Teams</button>
-                )}
-           </div>
+           {saving && <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>Saving changes...</div>}
        </div>
 
        {err && <div className="dv-alert" style={{ marginBottom: 12 }}>{err}</div>}
        
        {/* Global Settings Box */}
-       <div className="config-panel">
+       <div className="config-panel" style={{ marginBottom: 20 }}>
             <div className="panel-row">
-
-              <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-                <input type="checkbox" checked={showUpcoming} onChange={e => setShowUpcoming(e.target.checked)} disabled={!isEditing} />
+              <label className="checkbox-label" style={{ cursor: 'pointer' }}>
+                <input type="checkbox" checked={showUpcoming} onChange={e => handleGlobalToggle(e.target.checked)} />
                 Show Upcoming Games
               </label>
-
             </div>
         </div>
 
-        {/* Filters (Edit Mode Only) */}
-        {isEditing && (
-            <div className="toolbar">
-                <div className="pills">
-                    {LEAGUES.map(L => <button key={L} className={`pill ${league === L ? 'active':''}`} onClick={()=>setLeague(L)}>{L}</button>)}
-                </div>
+        {/* Filter Pills */}
+        <div className="toolbar">
+            <div className="pills">
+                {LEAGUES.map(L => <button key={L} className={`pill ${league === L ? 'active':''}`} onClick={()=>setLeague(L)}>{L}</button>)}
             </div>
-        )}
+        </div>
 
         <div className="main">
-            {/* Grid (Edit Mode Only) */}
-            {isEditing && (
-                <div className="grid">
-                    {filtered.map(t => (
-                        <div key={t.id} className="card">
-                            <div className="logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="logo" /> : emoji[t.league_id]}</div>
-                            <div style={{flex:1, minWidth:0}}>
-                                <div className="title">{t.market} {t.name}</div>
-                                <div className="meta">{t.league_id}</div>
-                            </div>
-                            <div className={`switch ${isSelected(t.id) ? 'on':''}`} onClick={()=>toggle(t.id)} />
+            {/* Grid of Teams */}
+            <div className="grid">
+                {filtered.map(t => (
+                    <div key={t.id} className="card">
+                        <div className="logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="logo" /> : emoji[t.league_id]}</div>
+                        <div style={{flex:1, minWidth:0}}>
+                            <div className="title">{t.market} {t.name}</div>
+                            <div className="meta">{t.league_id}</div>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <div className={`switch ${isSelected(t.id) ? 'on':''}`} onClick={()=>toggleTeam(t.id)} />
+                    </div>
+                ))}
+            </div>
 
-            {/* Selected List (Always visible) */}
-            <aside className="aside" style={!isEditing ? { width: '100%', maxWidth: '600px', gridColumn: '1 / -1' } : {}}>
+            {/* Selected List Sidebar */}
+            <aside className="aside">
                 <div className="aside-h">
-                    <strong>Selected Teams({selected.length})</strong>
+                    <strong>Selected Teams ({selected.length})</strong>
                 </div>
-                <ul className="list">
-                    {selected.map(s => {
+                {selected.length === 0 && <div style={{ padding: 16, color: '#999', fontStyle: 'italic' }}>No teams selected.</div>}
+                
+                <div className="list">
+                    {selected.map((s, idx) => {
                         const t = byId.get(s.team_id);
                         if(!t) return null;
                         return (
-                            <li key={s.team_id} className="row">
+                            <div 
+                                key={s.team_id} 
+                                className="row"
+                                draggable
+                                onDragStart={() => (dragItem.current = idx)}
+                                onDragEnter={() => (dragOverItem.current = idx)}
+                                onDragEnd={handleSort}
+                                onDragOver={(e) => e.preventDefault()}
+                                style={{ cursor: 'move', background: 'white', border:'1px solid #eee', padding: '8px', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center'}}
+                            >
+                                <GripIcon />
+                                
                                 <div className="small-logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="small-logo"/> : emoji[t.league_id]}</div>
                                 <div style={{flex:1}}>
                                     <div className="row-title">{t.market} {t.name}</div>
-                                    {/* --- NEW: Subtext for League --- */}
                                     <div style={{ fontSize: 11, color: '#888' }}>{t.league_id}</div>
                                 </div>
-
-
-                                {isEditing ? (
-                                    <>
-                                        <div className="actions">
-                                            <button className="icon-btn" onClick={()=>move(s.team_id, -1)}>↑</button>
-                                            <button className="icon-btn" onClick={()=>move(s.team_id, 1)}>↓</button>
-                                            <button className="icon-btn danger" onClick={()=>remove(s.team_id)}>✕</button>
-                                        </div>
-                                    </>
-                                ) : null}
-                            </li>
+                                <button className="icon-btn danger" onClick={()=>remove(s.team_id)}>✕</button>
+                            </div>
                         );
                     })}
-                </ul>
+                </div>
             </aside>
         </div>
     </div>
