@@ -131,14 +131,12 @@ export function DeviceSportsPanel({ deviceId }: Props) {
     });
   };
 
-const save = async () => {
+  const save = async () => {
     setSaving(true);
     try {
-        // 1. Save Globals (Clean Payload - No Fetch Needed)
+        // 1. Save Global Sports Settings
         const settingsPayload = {
-            finance_show_hourly_change: showHourly,
-            finance_show_daily_change: showDaily,
-            finance_show_weekly_change: showWeekly,
+            sports_show_next_upcoming_games: showUpcoming
         };
         
         const r1 = await fetch(`${API_BASE}/devices/${deviceId}`, {
@@ -149,27 +147,21 @@ const save = async () => {
 
         if (!r1.ok) throw new Error("Failed to save global settings");
 
-        // 2. Save Crypto Config
-        const cryptoPayload = {
-            items: selectedItems.map((item, i) => ({
-                crypto_pair_id: item.id,
-                display_order: i + 1,
-                display_text: item.display_text,
-                color: item.color,
-                // Pass globals down to item config as well
-                hourly_change: showHourly, 
-                daily_change: showDaily,
-                weekly_change: showWeekly
+        // 2. Save Selected Teams Config
+        const teamsPayload = {
+            teams: selected.map((item, i) => ({
+                team_id: item.team_id,
+                display_order: i + 1
             }))
         };
 
-        const r2 = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
+        const r2 = await fetch(`${API_BASE}/devices/${deviceId}/teams`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify(cryptoPayload),
+            body: JSON.stringify(teamsPayload),
         });
 
-        if (!r2.ok) throw new Error("Failed to save crypto config");
+        if (!r2.ok) throw new Error("Failed to save teams config");
 
         setIsEditing(false);
         loadData(); 
@@ -178,7 +170,8 @@ const save = async () => {
     } finally {
         setSaving(false);
     }
-  };
+};  
+  
   const cancel = () => { setIsEditing(false); loadData(); };
   
   const move = (id: string, dir: -1 | 1) => {
@@ -270,7 +263,11 @@ const save = async () => {
                                 <div className="small-logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="small-logo"/> : emoji[t.league_id]}</div>
                                 <div style={{flex:1}}>
                                     <div className="row-title">{t.market} {t.name}</div>
+                                    {/* --- NEW: Subtext for League --- */}
+                                    <div style={{ fontSize: 11, color: '#888' }}>{t.league_id}</div>
                                 </div>
+
+
                                 {isEditing ? (
                                     <>
                                         <div className="actions">

@@ -238,9 +238,10 @@ export function DeviceFinancePanel({ deviceId }: Props) {
 
   // Data
   const [cryptoData, setCryptoData] = useState<CryptoItem[]>([]);
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]>("Crypto");
+  
+  // --- MODIFIED: Default to Stocks ---
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]>("Stocks");
 
-// --- PASTE HERE ---
   const [stockData, setStockData] = useState<StockItem[]>([]);
 
   // Load Data
@@ -512,22 +513,6 @@ return (
 
        {err && <div className="dv-alert" style={{ marginBottom: 12 }}>{err}</div>}
        
-       <div className="config-panel">
-            <div className="panel-row" style={{ gap: 20 }}>
-              <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-                <input type="checkbox" checked={showHourly} onChange={e => setShowHourly(e.target.checked)} disabled={!isEditing} />
-                Show Hourly %
-              </label>
-              <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-                <input type="checkbox" checked={showDaily} onChange={e => setShowDaily(e.target.checked)} disabled={!isEditing} />
-                Show Daily %
-              </label>
-              <label className="checkbox-label" style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-                <input type="checkbox" checked={showWeekly} onChange={e => setShowWeekly(e.target.checked)} disabled={!isEditing} />
-                Show Weekly %
-              </label>
-            </div>
-        </div>
 
         {/* EDIT MODE AREA - WRAPPED IN FRAGMENT */}
         {isEditing && (
@@ -730,52 +715,88 @@ return (
 
                 </div>
             )}
-            {/* --- WRAP THIS BLOCK IN THE CONDITION BELOW --- */}
-            {!isEditing && activeTab === 'Crypto' && (
-                <aside className="aside" style={!isEditing ? { width: '100%', maxWidth: '600px', gridColumn: '1 / -1' } : {}}>
-                    <div className="aside-h">
-                        <strong>Selected Cryptos ({selectedItems.length})</strong>
-                    </div>
-                    {selectedItems.length === 0 && <div style={{ padding: 16, color: '#999' }}>No products selected.</div>}
-                    <ul className="list">
-                        {selectedItems.map(item => (
-                            <li key={item.id} className="row">
-                                <div className="small-logo">
-                                    {item.image_url ? (
-                                        <img src={getIconSrc(item.image_url)} alt={item.code} className="small-logo" />
-                                    ) : (
-                                        <span style={{ fontSize: 20 }}>🪙</span>
-                                    )}
-                                </div>
-                                <div style={{flex:1}}>
-                                    <div className="row-title">{item.description}</div>
-                                    <div style={{ fontSize: 11, color: '#888' }}>{item.pair.toUpperCase()}</div>
-                                </div>                            
-                                <div style={{ 
-                                    background: '#eee', 
-                                    padding: '2px 8px', 
-                                    borderRadius: 4, 
-                                    fontSize: 12, 
-                                    fontWeight: 600,
-                                    marginRight: 8,
-                                    color: '#333'
-                                }}>
-                                    {item.code.toUpperCase()}
-                                </div>
+            
+            {/* --- UPDATED VIEW MODE: Show Stocks Panel THEN Crypto Panel --- */}
+{/* --- UPDATED VIEW MODE: Show Stocks Panel THEN Crypto Panel --- */}
+            {!isEditing && (
+                <div style={{ gridColumn: '1 / -1', width: '100%', maxWidth: '600px' }}>
+                    
+                    {/* 1. Selected Stocks Panel */}
+                    <aside className="aside" style={{ marginBottom: 20 }}>
+                        <div className="aside-h">
+                            <strong>Selected Stocks ({stockData.length})</strong>
+                        </div>
+                        
+                        {stockData.length === 0 && (
+                            <div style={{ padding: 16, color: '#999', fontStyle: 'italic', textAlign: 'center' }}>
+                                Selected stocks (0)
+                            </div>
+                        )}
 
-                                {isEditing && (
-                                    <div className="actions">
-                                        <button className="icon-btn" onClick={()=>moveItem(item.id, -1)}>↑</button>
-                                        <button className="icon-btn" onClick={()=>moveItem(item.id, 1)}>↓</button>
-                                        <button className="icon-btn danger" onClick={()=>removeItem(item.id)}>✕</button>
+                        <ul className="list">
+                            {stockData.map((item, idx) => (
+                                <li key={item.id || idx} className="row">
+                                    <div className="small-logo" style={{ overflow: 'hidden', marginRight: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: '50%', width: 32, height: 32 }}>
+                                        {item.logo_url ? (
+                                            <img src={item.logo_url} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        ) : (
+                                            <span style={{ fontSize: 16 }}>📈</span>
+                                        )}
                                     </div>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </aside>
+                                    <div style={{flex:1}}>
+                                        <div className="row-title" style={{ fontWeight: 'bold' }}>{item.stock_ticker}</div>
+                                        {item.display_text && <div style={{ fontSize: 11, color: '#888' }}>{item.display_text}</div>}
+                                    </div>                            
+                                </li>
+                            ))}
+                        </ul>
+                    </aside>
+
+                    {/* 2. Selected Cryptos Panel */}
+                    <aside className="aside">
+                        <div className="aside-h">
+                            <strong>Selected Cryptos ({selectedItems.length})</strong>
+                        </div>
+                        
+                        {selectedItems.length === 0 && (
+                            <div style={{ padding: 16, color: '#999', fontStyle: 'italic', textAlign: 'center' }}>
+                                Selected cryptos (0)
+                            </div>
+                        )}
+
+                        <ul className="list">
+                            {selectedItems.map(item => (
+                                <li key={item.id} className="row">
+                                    <div className="small-logo" style={{ marginRight: 12 }}>
+                                        {item.image_url ? (
+                                            <img src={getIconSrc(item.image_url)} alt={item.code} className="small-logo" style={{ width: 24, height: 24 }} />
+                                        ) : (
+                                            <span style={{ fontSize: 20 }}>🪙</span>
+                                        )}
+                                    </div>
+                                    <div style={{flex:1}}>
+                                        <div className="row-title">{item.description}</div>
+                                        <div style={{ fontSize: 11, color: '#888' }}>{item.pair.toUpperCase()}</div>
+                                    </div>                            
+                                    <div style={{ 
+                                        background: '#eee', 
+                                        padding: '2px 8px', 
+                                        borderRadius: 4, 
+                                        fontSize: 12, 
+                                        fontWeight: 600,
+                                        marginRight: 8,
+                                        color: '#333'
+                                    }}>
+                                        {item.code.toUpperCase()}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </aside>
+
+                </div>
             )}
-            {/* --- END OF WRAPPER --- */}
+            {/* --- END OF VIEW MODE --- */}
 
         </div>
     </div>
