@@ -280,50 +280,45 @@ export function DeviceFinancePanel({ deviceId }: Props) {
     }
   };
 
-  // Crypto Add
-  const handleCryptoAdd = async (coin: any) => {
-      // Check existing
-      const existing = cryptoData.find(c => c.code === coin.symbol.toLowerCase());
-      if (existing) {
-          if(!existing.selected) {
-             toggleCryptoSelection(existing.id);
-             toast?.(`Added ${existing.description}`);
-          } else {
-             toast?.("Already added!");
-          }
-          return;
-      }
+    // Crypto Add
+// src/components/DeviceFinance.tsx
 
-      // Add New via Backend Validation
-      try {
-        const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
-            method: 'POST',
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify({ code: coin.symbol, name: coin.name, image_url: coin.thumb })
-        });
-        if (!res.ok) throw new Error("Failed to add");
-        const newCoin = await res.json();
-        
-        const newItem: CryptoItem = {
-            id: newCoin.id,
-            pair: newCoin.pair,
-            code: newCoin.code,
-            currency: "usd",
-            description: newCoin.description,
-            image_url: newCoin.image_url,
-            selected: true,
-            order: cryptoData.filter(c=>c.selected).length + 1,
-            display_text: newCoin.code.toUpperCase(),
-            color: 'white'
-        };
+    const handleCryptoAdd = async (coin: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json", ...authHeaders() },
+                body: JSON.stringify({ 
+                    code: coin.symbol, // "XRP"
+                    name: coin.name, 
+                    image_url: coin.thumb,
+                    fetch_id: coin.id  // "ripple"
+                })
+            });
+            
+            const validatedCoin = await res.json();
+            
+            // Use the ID returned from the DB, not the search result ID
+            const newItem: CryptoItem = {
+                id: validatedCoin.id, // The UUID from the DB
+                pair: validatedCoin.pair || `${validatedCoin.code}usd`,
+                code: validatedCoin.code,
+                currency: 'usd',
+                description: validatedCoin.description,
+                selected: true,
+                order: selectedCryptos.length + 1
+            };
 
-        const newList = [...cryptoData, newItem];
-        setCryptoData(newList);
-        autoSave(undefined, newList);
-        toast?.(`Added ${newCoin.description}`);
-
-      } catch(e) { toast?.("Could not add crypto", "error"); }
-  };
+            const newList = [...cryptoData, newItem];
+            setCryptoData(newList);
+            
+            // Await this to prevent race conditions during the DB link
+            await autoSave(undefined, newList); 
+            toast?.(`Added ${validatedCoin.code.toUpperCase()}`);
+        } catch(e) {
+            toast?.("Critical Error adding coin", "error");
+        }
+    };
 
   const toggleCryptoSelection = (id: string) => {
       setCryptoData(prev => {

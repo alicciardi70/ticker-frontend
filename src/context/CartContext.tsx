@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { API_BASE } from "../lib/api";
+import { v4 as uuidv4 } from 'uuid'; // <--- IMPORT THIS
 
 function getGuestId() {
   let id = localStorage.getItem("ticker_guest_id");
   if (!id) {
-    id = crypto.randomUUID();
+    id = uuidv4(); // <--- FIXED: Works on Android/iOS/Web
     localStorage.setItem("ticker_guest_id", id);
   }
   return id;
@@ -18,6 +19,7 @@ export type CartItem = {
     name: string;
     price_cents: number;
     image_url?: string | null;
+    discount_cents?: number; // Added to match your UI logic
   };
 };
 
@@ -45,8 +47,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const guestId = getGuestId();
       
       const headers: any = { "Content-Type": "application/json" };
+      // Always send guest ID if we have it, even if logged in (helps backend merge)
+      if (guestId) headers["X-Guest-ID"] = guestId; 
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      else headers["X-Guest-ID"] = guestId;
 
       try {
         const res = await fetch(`${API_BASE}/cart`, { headers });
@@ -67,8 +70,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getHeaders = () => {
     const token = localStorage.getItem("token");
     const headers: any = { "Content-Type": "application/json" };
+    // Fix: Send both if available so backend can link them
+    const guestId = getGuestId();
+    if (guestId) headers["X-Guest-ID"] = guestId;
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    else headers["X-Guest-ID"] = getGuestId();
     return headers;
   };
 

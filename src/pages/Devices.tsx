@@ -13,6 +13,7 @@ type Device = {
   timezone_id?: string | null;
   render_type?: "H" | "V" | "F" | "B";
   render_speed?: number;
+  last_seen_at?: string | null;
 };
 
 function authHeaders() {
@@ -80,6 +81,11 @@ export default function Devices() {
         }}>
             {devices.map(d => {
                 const isActive = d.id === selectedDeviceId;
+                // [HELPER FOR TIME FORMATTING]
+                const lastSeenDisplay = d.last_seen_at 
+                    ? new Date(d.last_seen_at).toLocaleString() 
+                    : "Never";
+
                 return (
                     <div 
                         key={d.id}
@@ -111,6 +117,9 @@ export default function Devices() {
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
                             ID: {d.controller_id}
                         </div>
+                        <div style={{ fontSize: '0.70rem', color: d.last_seen_at ? '#059669' : '#9ca3af', marginTop: '2px' }}>
+                            Last seen: {lastSeenDisplay}
+                        </div>                        
                     </div>
                 )
             })}

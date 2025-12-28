@@ -17,6 +17,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import ChangePassword from "./pages/ChangePassword";
+import WifiSetupBle from "./pages/WifiSetupBle";
+
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
 
           <Route path="/devices" element={<Devices />} />
           <Route path="/devices/:deviceId/config" element={<Devices />} />
+          <Route path="/wifi-setup" element={<WifiSetupBle />} />
+
           <Route path="/orders" element={<Orders />} />
           <Route path="/account" element={<Account />} />
           
