@@ -39,7 +39,7 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
   const [showHoroscope, setShowHoroscope] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
   const [showNews, setShowNews] = useState(false);
-  const [showIndices, setShowIndices] = useState(false);
+ 
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -67,7 +67,7 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
       setSelectedSigns(signsStr ? signsStr.split(",").map((s: string) => s.trim().toLowerCase()) : []);
       // News
       setShowNews(data.show_news ?? false);
-      setShowIndices(data.show_indices ?? false);
+   
 
     } catch (e: any) {
       setErr(e.message);
@@ -130,7 +130,6 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
         horoscope_signs: selectedSigns.join(","),
         // News 
         show_news: showNews,
-        show_indices: showIndices,
       };
 
       const putRes = await fetch(`${API_BASE}/devices/${deviceId}`, {
@@ -319,25 +318,6 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
                 </label>
             </div>
           </div>
-
-          {/* --- SECTION 5: MARKET INDICES --- */}
-          <div>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Market Indices</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <label className="checkbox-label" style={{ fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
-                    <input 
-                        type="checkbox" 
-                        checked={showIndices} 
-                        onChange={(e) => setShowIndices(e.target.checked)} 
-                        disabled={!isEditing} 
-                    />
-                    Show Major Indices (Dow, S&P 500)
-                </label>
-            </div>
-          </div>
-
-
-
 
         </div>
       </div>

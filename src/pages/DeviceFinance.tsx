@@ -143,10 +143,14 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   const [showWeekly, setShowWeekly] = useState(false);
   const [stockKey, setStockKey] = useState("");
 
+// -- NEW: Indices Setting --
+  const [showIndices, setShowIndices] = useState(false);
+
   // Data
   const [cryptoData, setCryptoData] = useState<CryptoItem[]>([]);
   const [stockData, setStockData] = useState<StockItem[]>([]);
-  
+  const [targetCurrency, setTargetCurrency] = useState("usd");
+
   // Tab State
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("Stocks");
 
@@ -172,6 +176,9 @@ export function DeviceFinancePanel({ deviceId }: Props) {
         setShowDaily(d.finance_show_daily_change ?? false);
         setShowWeekly(d.finance_show_weekly_change ?? false);
         setStockKey(d.finance_stocks_apikey || "");
+        // Load Indices Setting
+        setShowIndices(d.show_indices ?? false);
+
       }
       
       if (cRes.ok) setCryptoData(await cRes.json());
@@ -250,6 +257,22 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   };
 
 
+// --- NEW: Toggle Indices ---
+  const handleIndicesToggle = async (checked: boolean) => {
+    setShowIndices(checked);
+    // Directly save to device endpoint (Scalar setting)
+    try {
+        await fetch(`${API_BASE}/devices/${deviceId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ show_indices: checked }),
+        });
+    } catch (e) {
+        console.error(e);
+        toast?.("Failed to save indices setting", "error");
+    }
+  };
+
   // --- 3. EVENT HANDLERS ---
 
   // Stock Add
@@ -283,42 +306,54 @@ export function DeviceFinancePanel({ deviceId }: Props) {
     // Crypto Add
 // src/components/DeviceFinance.tsx
 
-    const handleCryptoAdd = async (coin: any) => {
-        try {
-            const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify({ 
-                    code: coin.symbol, // "XRP"
-                    name: coin.name, 
-                    image_url: coin.thumb,
-                    fetch_id: coin.id  // "ripple"
-                })
-            });
-            
-            const validatedCoin = await res.json();
-            
-            // Use the ID returned from the DB, not the search result ID
-            const newItem: CryptoItem = {
-                id: validatedCoin.id, // The UUID from the DB
-                pair: validatedCoin.pair || `${validatedCoin.code}usd`,
-                code: validatedCoin.code,
-                currency: 'usd',
-                description: validatedCoin.description,
-                selected: true,
-                order: selectedCryptos.length + 1
-            };
-
-            const newList = [...cryptoData, newItem];
-            setCryptoData(newList);
-            
-            // Await this to prevent race conditions during the DB link
-            await autoSave(undefined, newList); 
-            toast?.(`Added ${validatedCoin.code.toUpperCase()}`);
-        } catch(e) {
-            toast?.("Critical Error adding coin", "error");
+// 2. UPDATED HANDLER
+const handleCryptoAdd = async (coin: any) => {
+    try {
+        const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
+            method: 'POST',
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ 
+                code: coin.symbol, 
+                name: coin.name, 
+                image_url: coin.thumb,
+                fetch_id: coin.id,
+                currency: targetCurrency // <--- Sends 'usd', 'eur', 'gbp', etc.
+            })
+        });
+        
+        // Safety check to prevent white screen
+        if (!res.ok) {
+            const err = await res.json();
+            toast?.(err.detail || "Failed to add coin. Check currency support.", "error");
+            return;
         }
-    };
+        
+        const validatedCoin = await res.json();
+        
+        // Optimistic Add
+        const newItem: CryptoItem = {
+            id: validatedCoin.id,
+            pair: validatedCoin.pair,
+            code: validatedCoin.code,
+            currency: targetCurrency, // <--- Store locally for display
+            description: validatedCoin.description,
+            selected: true,
+            order: cryptoData.filter(c => c.selected).length + 1
+        };
+
+        const newList = [...cryptoData, newItem];
+        setCryptoData(newList);
+        
+        // Save changes (pass undefined for stocks to keep them as-is)
+        await autoSave(undefined, newList); 
+        toast?.(`Added ${validatedCoin.code.toUpperCase()} (${targetCurrency.toUpperCase()})`);
+
+    } catch(e) {
+        console.error(e);
+        toast?.("Critical Error adding coin", "error");
+    }
+};
+
 
   const toggleCryptoSelection = (id: string) => {
       setCryptoData(prev => {
@@ -497,10 +532,37 @@ export function DeviceFinancePanel({ deviceId }: Props) {
         )}
 
         {/* --- CRYPTO TAB --- */}
-        {activeTab === 'Crypto' && (
+{activeTab === 'Crypto' && (
             <div style={{ gridColumn: '1/-1' }}>
-                <CryptoSearch onSelect={handleCryptoAdd} />
                 
+                {/* --- NEW: Search + Currency Dropdown --- */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                        <CryptoSearch onSelect={handleCryptoAdd} />
+                    </div>
+                    
+                    <select 
+                        value={targetCurrency} 
+                        onChange={(e) => setTargetCurrency(e.target.value)}
+                        style={{ 
+                            padding: '0 15px', 
+                            height: 42, // Matches search input height
+                            borderRadius: 8, 
+                            border: '1px solid #ddd', 
+                            background: '#f8f9fa',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            minWidth: '80px'
+                        }}
+                    >
+                        <option value="usd">USD ($)</option>
+                        <option value="eur">EUR (€)</option>
+                        <option value="gbp">GBP (£)</option>
+                        <option value="jpy">JPY (¥)</option>
+                    </select>
+                </div>
+                {/* --------------------------------------- */}
+
                 <h4 style={{marginBottom: 10, fontSize: 14, textTransform: 'uppercase', color: '#888', letterSpacing: 0.5 }}>
                     Selected Cryptos ({selectedCryptos.length})
                 </h4>
@@ -542,8 +604,31 @@ export function DeviceFinancePanel({ deviceId }: Props) {
             </div>
         )}
 
+{/* --- INDICES TAB --- */}
+        {activeTab === 'Indices' && (
+            <div style={{ background: '#f9fafb', padding: '24px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Market Indices</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <label style={{ fontWeight: 600, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <input 
+                            type="checkbox" 
+                            checked={showIndices} 
+                            onChange={(e) => handleIndicesToggle(e.target.checked)} 
+                            style={{ width: 18, height: 18, cursor: "pointer" }}
+                        />
+                        <span style={{ fontSize: 15 }}>Show Major Indices (Dow, S&P 500)</span>
+                    </label>
+                    <div style={{ fontSize: 12, color: '#666', marginLeft: 28 }}>
+                        Displays the current value and daily change for major US market indices.
+                    </div>
+                </div>
+            </div>
+        )}
+
+
+
         {/* --- OTHER TABS --- */}
-        {(activeTab === 'Indices' || activeTab === 'Economic') && (
+        { activeTab === 'Economic' && (
              <div style={{ padding: 40, color: '#999', textAlign: 'center' }}>
                 Coming Soon
             </div>
