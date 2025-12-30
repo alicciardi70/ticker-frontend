@@ -1,3 +1,4 @@
+import LandingPage from "./components/LandingPage"; // Make sure this path matches where you saved it
 import { HashRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 
@@ -24,10 +25,23 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
+
+{/* --- 1. THE FRONT DOOR (Marketing) --- */}
+        {/* This sits OUTSIDE the Layout so it can be full-screen & dark */}
+        <Route 
+          path="/" 
+          element={
+            <LandingPage 
+              onLoginClick={() => window.location.hash = "#/login"} 
+            />
+          } 
+        />
+
+
         {/* Everything below shares the same top nav */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          
+          {/*<Route path="/" element={<Home />} /> */}
+          <Route path="/dashboard" element={<Home />} />
           <Route path="/products" element={<Products />} /> 
 
           <Route path="/devices" element={<Devices />} />
