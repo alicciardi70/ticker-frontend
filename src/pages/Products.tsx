@@ -14,26 +14,26 @@ type Product = {
   created_at: string;
 };
 
-// Standard styles copied from Account/Login for consistency
+// Dark Mode Styles
 const styles = {
   container: {
     maxWidth: 1100,
     margin: "40px auto",
     padding: "0 20px",
-    fontFamily:
-      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    color: "#0f172a",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    color: "#fff",
   } as React.CSSProperties,
   title: {
     fontSize: 32,
-    fontWeight: 800,
+    fontWeight: 900,
     margin: "0 0 8px 0",
-    letterSpacing: "-0.5px",
+    letterSpacing: "-1px",
+    color: "#fff",
   } as React.CSSProperties,
   subtitle: {
-    color: "#64748b",
+    color: "#888",
     fontSize: 16,
-    marginBottom: 30,
+    marginBottom: 40,
   } as React.CSSProperties,
 };
 
@@ -56,13 +56,7 @@ export default function Products() {
           throw new Error(text || `HTTP ${res.status} ${res.statusText}`);
         }
         if (!ct.includes("application/json")) {
-          const text = await res.text().catch(() => "");
-          throw new Error(
-            `Expected JSON but got ${ct || "unknown"}.\nFirst bytes: ${text.slice(
-              0,
-              80
-            )}`
-          );
+          throw new Error("Expected JSON response");
         }
         return res.json();
       })
@@ -79,7 +73,7 @@ export default function Products() {
   if (loading) {
     return (
       <div style={styles.container}>
-        <p>Loading products…</p>
+        <p style={{ color: "#666" }}>Loading products…</p>
       </div>
     );
   }
@@ -87,7 +81,7 @@ export default function Products() {
   if (err) {
     return (
       <div style={styles.container}>
-        <p style={{ color: "crimson", whiteSpace: "pre-wrap" }}>Error: {err}</p>
+        <p style={{ color: "#ef4444", whiteSpace: "pre-wrap" }}>Error: {err}</p>
       </div>
     );
   }
@@ -99,7 +93,7 @@ export default function Products() {
         Browse our available physical ticker displays and kits.
       </p>
 
-      {/* Simple Responsive Grid Layout */}
+      {/* Responsive Grid Layout */}
       <div
         style={{
           display: "grid",
@@ -118,115 +112,101 @@ export default function Products() {
               key={p.id}
               style={{
                 padding: 20,
-                border: "1px solid #e5e7eb",
+                border: "1px solid #333",
                 borderRadius: 12,
-                background: "#fff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                background: "#111", // Dark card background
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 12,
+                transition: "transform 0.2s ease, border-color 0.2s ease",
               }}
+              // Simple hover effect logic would ideally use CSS classes, 
+              // but inline styles work for structure.
             >
-              {/* Optional thumbnail if you set image_url */}
+              {/* Thumbnail */}
               {p.image_url && (
-                <img
-                  src={p.image_url}
-                  alt={p.name}
-                  style={{
-                    width: "100%",
-                    borderRadius: 8,
-                    marginBottom: 6,
-                    objectFit: "cover",
-                    maxHeight: 180,
-                  }}
-                />
+                <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden', border: '1px solid #222' }}>
+                    <img
+                    src={p.image_url}
+                    alt={p.name}
+                    style={{
+                        width: "100%",
+                        height: 200,
+                        objectFit: "cover",
+                        display: "block"
+                    }}
+                    />
+                </div>
               )}
 
-              <h3
-                style={{
-                  margin: "0 0 5px 0",
-                  fontSize: 18,
-                  fontWeight: 700,
-                }}
-              >
-                {p.name}
-              </h3>
-
-              {/* Price block: final price + original + savings */}
-              <div style={{ marginBottom: 4 }}>
-                {hasDiscount ? (
-                  <>
-                    {/* Final (discounted) price */}
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 18,
-                        color: "#16a34a",
-                        marginBottom: 2,
-                      }}
-                    >
-                      ${finalPrice.toFixed(2)}
-                    </div>
-
-                    {/* Original price, struck through */}
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: "#9ca3af",
-                        textDecoration: "line-through",
-                      }}
-                    >
-                      ${originalPrice.toFixed(2)}
-                    </div>
-
-                    {/* “You save …” line */}
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#16a34a",
-                        fontWeight: 600,
-                        marginTop: 2,
-                      }}
-                    >
-                      You save ${discount.toFixed(2)}
-                    </div>
-                  </>
-                ) : (
-                  <div
+              <div>
+                <h3
                     style={{
-                      fontWeight: 600,
-                      color: "#111827",
-                      fontSize: 18,
+                    margin: "0 0 6px 0",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff"
                     }}
-                  >
-                    ${originalPrice.toFixed(2)}
-                  </div>
-                )}
+                >
+                    {p.name}
+                </h3>
+
+                {/* Price block */}
+                <div>
+                    {hasDiscount ? (
+                    <>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <span style={{ fontWeight: 700, fontSize: 18, color: "#fff" }}>
+                                ${finalPrice.toFixed(2)}
+                            </span>
+                            <span style={{ fontSize: 14, color: "#666", textDecoration: "line-through" }}>
+                                ${originalPrice.toFixed(2)}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#00ff41", fontWeight: 600, marginTop: 4 }}>
+                            Save ${discount.toFixed(2)}
+                        </div>
+                    </>
+                    ) : (
+                    <div style={{ fontWeight: 600, color: "#fff", fontSize: 18 }}>
+                        ${originalPrice.toFixed(2)}
+                    </div>
+                    )}
+                </div>
               </div>
 
-              {/* Short description if present */}
+              {/* Short description */}
               {p.short && (
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: "#64748b",
-                    margin: "4px 0 10px 0",
-                  }}
-                >
+                <p style={{ fontSize: 14, color: "#888", margin: 0, lineHeight: 1.5 }}>
                   {p.short}
                 </p>
               )}
 
-              <div style={{ marginTop: "auto" }}>
+              <div style={{ marginTop: "auto", paddingTop: 12 }}>
                 <Link
                   to={`/products/${p.slug}`}
                   style={{
-                    color: "#2563eb",
+                    display: "block",
+                    textAlign: "center",
+                    background: "transparent",
+                    border: "1px solid #333",
+                    color: "#fff",
                     textDecoration: "none",
-                    fontWeight: 500,
+                    fontWeight: 600,
+                    padding: "10px",
+                    borderRadius: 8,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#00ff41";
+                      e.currentTarget.style.color = "#00ff41";
+                  }}
+                  onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#333";
+                      e.currentTarget.style.color = "#fff";
                   }}
                 >
-                  View Details →
+                  View Details
                 </Link>
               </div>
             </div>

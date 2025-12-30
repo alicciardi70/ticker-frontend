@@ -68,6 +68,62 @@ function utcToLocal(utcStr: string): string {
     } catch { return ""; }
 }
 
+function SpeedPreview({ speed }: { speed: number }) {
+  const [index, setIndex] = useState(1);
+
+  useEffect(() => {
+    // Reset to image 1 whenever speed changes for instant feedback
+    setIndex(1); 
+    
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev % 10) + 1); // Cycles 1 to 10
+    }, speed * 1000);
+
+    return () => clearInterval(interval);
+  }, [speed]);
+
+  return (
+    <div style={{
+      marginTop: '12px',
+      width: '100%',
+      height: '160px', // Adjust height to fit your images
+      background: '#000',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px solid #334155',
+      position: 'relative'
+    }}>
+      {/* Assumes images are in /public folder named spdclip1.jpg, spdclip2.jpg, etc. */}
+      <img 
+        src={`/spdclip${index}.png`} 
+        alt={`Preview frame ${index}`}
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+      />
+      <div style={{
+        position: 'absolute', bottom: '5px', right: '5px',
+        background: 'rgba(0,0,0,0.7)', color: '#fff',
+        padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem'
+      }}>
+        Switching every {speed}s
+      </div>
+    </div>
+  );
+}
+
+
+// Common Input Style for Dark Mode
+const inputStyle = {
+    background: '#111',
+    border: '1px solid #333',
+    color: '#fff',
+    padding: '10px',
+    borderRadius: '4px',
+    width: '100%',
+    fontSize: '14px'
+};
 
 type DeviceConfigPanelProps = {
   deviceId: string;
@@ -382,17 +438,40 @@ export function DeviceConfigPanel({deviceId, embedded = false, onClose, onSaved,
             </div>
 
             <div className="dv-field">
-              <label>Animation Speed (1-100)</label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={editRenderSpeed}
-                onChange={(e) => setEditRenderSpeed(parseInt(e.target.value) || 3)}
-                disabled={!isEditing}
-                className={`dv-input ${isEditing ? "edit-mode" : "read-mode"}`}
-              />
+              <label>
+                Screen Duration: <strong>{editRenderSpeed} seconds</strong>
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>2s</span>
+                <input
+                  type="range"
+                  min={2}
+                  max={15}
+                  step={1}
+                  value={editRenderSpeed}
+                  onChange={(e) => setEditRenderSpeed(parseInt(e.target.value) || 3)}
+                  disabled={!isEditing}
+                  style={{ 
+                    flex: 1, 
+                    cursor: isEditing ? 'pointer' : 'default',
+                    accentColor: '#0f172a' // Matches your dark theme vibe
+                  }}
+                />
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>15s</span>
+              </div>
+              <small style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                How long each item stays on screen.
+              </small>
             </div>
+
+            {/* --- INSERT THIS BLOCK --- */}
+            {isEditing && (
+              <div className="dv-field" style={{ gridColumn: '1 / -1' }}>
+                <label>Speed Preview</label>
+                <SpeedPreview speed={editRenderSpeed} />
+              </div>
+            )}
+            {/* ------------------------- */}
 
             <div className="dv-field">
               <label>Sleep Start (Local Time)</label>

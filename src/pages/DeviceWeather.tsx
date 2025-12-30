@@ -3,7 +3,6 @@ import "./DeviceTeams.css";
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
 
-
 function authHeaders() {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -18,6 +17,57 @@ const ZODIAC_SIGNS = [
   "leo", "virgo", "libra", "scorpio", 
   "sagittarius", "capricorn", "aquarius", "pisces"
 ];
+
+// Reusable Dark Mode Styles
+const styles = {
+  card: {
+    background: '#111', 
+    padding: '24px', 
+    borderRadius: '12px', 
+    border: '1px solid #333'
+  },
+  header: {
+    fontSize: "18px", 
+    fontWeight: "700", 
+    color: "#fff", // White text
+    margin: 0
+  },
+  sectionTitle: {
+    margin: "0 0 12px 0", 
+    fontSize: "14px", 
+    color: "#888", // Muted gray
+    textTransform: "uppercase" as const, 
+    letterSpacing: "0.05em"
+  },
+  divider: {
+    height: "1px", 
+    background: "#333", // Dark divider
+    margin: "24px 0"
+  },
+  checkboxLabel: {
+    color: '#fff',
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '10px',
+    cursor: 'pointer'
+  },
+  input: {
+    background: '#0a0a0a',
+    border: '1px solid #333',
+    color: '#fff',
+    padding: '8px',
+    borderRadius: '4px',
+    maxWidth: '150px'
+  },
+  subSection: {
+    marginLeft: "24px", 
+    display: "flex", 
+    flexDirection: "column" as const, 
+    gap: "12px", 
+    borderLeft: "2px solid #333", // Darker accent line
+    paddingLeft: "16px"
+  }
+};
 
 export function DeviceWeatherPanel({ deviceId }: Props) {
   const [loading, setLoading] = useState(true);
@@ -158,12 +208,13 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
-      <div style={{ background: "white", padding: "24px", borderRadius: "12px", border: "1px solid #e5e7eb" }}>
+      {/* 1. Dark Card Wrapper */}
+      <div style={styles.card}>
         
         {/* HEADER ROW */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#111827", margin: 0 }}>
-            Lifestyle & Weather
+            <h3 style={styles.header}>
+              Lifestyle & Weather
             </h3>
             <div className="dv-actions" style={{ margin: 0 }}>
                 {isEditing ? (
@@ -185,51 +236,50 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
 
         {err && <div className="dv-alert">{err}</div>}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           
           {/* --- SECTION 1: WEATHER --- */}
           <div>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Weather</h4>
+            <h4 style={styles.sectionTitle}>Weather</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <label className="checkbox-label" style={{ fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
+                <label style={{ ...styles.checkboxLabel, fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
                     <input
-                    type="checkbox"
-                    checked={weatherOnOff}
-                    onChange={(e) => setWeatherOnOff(e.target.checked)}
-                    disabled={!isEditing}
+                      type="checkbox"
+                      checked={weatherOnOff}
+                      onChange={(e) => setWeatherOnOff(e.target.checked)}
+                      disabled={!isEditing}
                     />
                     Enable Weather
                 </label>
 
                 {weatherOnOff && (
-                    <div style={{ marginLeft: "24px", display: "flex", flexDirection: "column", gap: "12px", borderLeft: "2px solid #f3f4f6", paddingLeft: "16px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <span style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280" }}>ZIP CODE</span>
+                    <div style={styles.subSection}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <span style={{ fontSize: "12px", fontWeight: "600", color: "#888" }}>ZIP CODE</span>
                             {isEditing ? (
                             <input
                                 type="text"
                                 placeholder="e.g. 10001"
                                 value={weatherZip}
                                 onChange={(e) => setWeatherZip(e.target.value)}
-                                className="dv-input"
-                                style={{ maxWidth: "150px" }}
+                                style={styles.input}
                             />
                             ) : (
-                            <div style={{ fontWeight: 600 }}>{weatherZip || "Not Set"}</div>
+                            <div style={{ fontWeight: 600, color: '#fff' }}>{weatherZip || "Not Set"}</div>
                             )}
                         </div>
 
-                        <div style={{ height: "1px", background: "#f3f4f6", margin: "4px 0" }} />
+                        <div style={{ height: "1px", background: "#333", margin: "4px 0" }} />
 
-                        <label className="checkbox-label" style={{ cursor: isEditing ? "pointer" : "default" }}>
+                        <label style={{ ...styles.checkboxLabel, cursor: isEditing ? "pointer" : "default" }}>
                             <input type="checkbox" checked={weatherCurrent} onChange={(e) => setWeatherCurrent(e.target.checked)} disabled={!isEditing} />
                             Current Weather
                         </label>
-                        <label className="checkbox-label" style={{ cursor: isEditing ? "pointer" : "default" }}>
+                        <label style={{ ...styles.checkboxLabel, cursor: isEditing ? "pointer" : "default" }}>
                             <input type="checkbox" checked={weather5Day} onChange={(e) => setWeather5Day(e.target.checked)} disabled={!isEditing} />
                             5-Day Forecast
                         </label>
-                        <label className="checkbox-label" style={{ cursor: isEditing ? "pointer" : "default" }}>
+                        <label style={{ ...styles.checkboxLabel, cursor: isEditing ? "pointer" : "default" }}>
                             <input type="checkbox" checked={weatherHourly} onChange={(e) => setWeatherHourly(e.target.checked)} disabled={!isEditing} />
                             Hourly Forecast
                         </label>
@@ -238,13 +288,13 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
             </div>
           </div>
 
-          <div style={{ height: "1px", background: "#e5e7eb" }} />
+          <div style={styles.divider} />
 
           {/* --- SECTION 2: LOTTERY --- */}
           <div>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Lottery Results</h4>
+            <h4 style={styles.sectionTitle}>Lottery Results</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label className="checkbox-label" style={{ cursor: isEditing ? "pointer" : "default" }}>
+                <label style={{ ...styles.checkboxLabel, cursor: isEditing ? "pointer" : "default" }}>
                     <input 
                         type="checkbox" 
                         checked={showPowerball} 
@@ -253,7 +303,7 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
                     />
                     Powerball
                 </label>
-                <label className="checkbox-label" style={{ cursor: isEditing ? "pointer" : "default" }}>
+                <label style={{ ...styles.checkboxLabel, cursor: isEditing ? "pointer" : "default" }}>
                     <input 
                         type="checkbox" 
                         checked={showMegaMillions} 
@@ -265,13 +315,13 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
             </div>
           </div>
 
-          <div style={{ height: "1px", background: "#e5e7eb" }} />
+          <div style={styles.divider} />
 
           {/* --- SECTION 3: HOROSCOPES --- */}
           <div>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Daily Horoscope</h4>
+            <h4 style={styles.sectionTitle}>Daily Horoscope</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <label className="checkbox-label" style={{ fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
+                <label style={{ ...styles.checkboxLabel, fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
                     <input 
                         type="checkbox" 
                         checked={showHoroscope} 
@@ -282,10 +332,10 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
                 </label>
 
                 {showHoroscope && (
-                    <div style={{ marginLeft: "24px", borderLeft: "2px solid #f3f4f6", paddingLeft: "16px" }}>
+                    <div style={styles.subSection}>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
                             {ZODIAC_SIGNS.map(sign => (
-                                <label key={sign} className="checkbox-label" style={{ fontSize: "14px", textTransform: "capitalize", cursor: isEditing ? "pointer" : "default" }}>
+                                <label key={sign} style={{ ...styles.checkboxLabel, fontSize: "14px", textTransform: "capitalize", cursor: isEditing ? "pointer" : "default" }}>
                                     <input 
                                         type="checkbox" 
                                         checked={selectedSigns.includes(sign)}
@@ -303,12 +353,12 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
 
 
           {/* --- SECTION 4: NEWS --- */}
-          <div style={{ height: "1px", background: "#e5e7eb" }} />
+          <div style={styles.divider} />
 
           <div>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>News Feed</h4>
+            <h4 style={styles.sectionTitle}>News Feed</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <label className="checkbox-label" style={{ fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
+                <label style={{ ...styles.checkboxLabel, fontWeight: "bold", cursor: isEditing ? "pointer" : "default" }}>
                     <input 
                         type="checkbox" 
                         checked={showNews} 

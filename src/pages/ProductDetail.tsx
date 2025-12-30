@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useCart } from "../context/CartContext";
-import { useToast } from "../context/ToastContext"; // <--- 1. Import
+import { useToast } from "../context/ToastContext";
 
 type Product = {
   id: string;
@@ -20,7 +20,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const { addToCart } = useCart();
-  const { toast } = useToast(); // <--- 2. Init Hook
+  const { toast } = useToast();
   
   const [p, setP] = useState<Product | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -38,14 +38,10 @@ export default function ProductDetail() {
       .then(async (res) => {
         const ct = res.headers.get("content-type") || "";
         if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status} ${res.statusText}`);
+          throw new Error(`HTTP ${res.status}`);
         }
         if (!ct.includes("application/json")) {
-          const text = await res.text().catch(() => "");
-          throw new Error(
-            `Expected JSON but got ${ct || "unknown"}.\nFirst bytes: ${text.slice(0, 80)}`
-          );
+          throw new Error("Expected JSON");
         }
         return res.json();
       })
@@ -59,7 +55,6 @@ export default function ProductDetail() {
       setAdding(true);
       try {
         await addToCart(p.id); 
-        // 3. USE TOAST INSTEAD OF ALERT
         toast(`Added ${p.name} to cart`); 
       } catch (e) {
         console.error(e);
@@ -71,17 +66,20 @@ export default function ProductDetail() {
 
   const containerStyle = {
     padding: 24,
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    color: '#fff',
+    maxWidth: 1100,
+    margin: "0 auto"
   };
 
   if (loading) return <div style={containerStyle}>Loading…</div>;
   if (err) return (
       <div style={containerStyle}>
-        <p style={{ color: "crimson", whiteSpace: "pre-wrap" }}>Error: {err}</p>
-        <Link to="/" style={{ color: "#2563eb", textDecoration: "none" }}>← Back</Link>
+        <p style={{ color: "#ef4444" }}>Error: {err}</p>
+        <Link to="/products" style={{ color: "#fff", textDecoration: "underline" }}>← Back to Products</Link>
       </div>
     );
-  if (!p) return <div style={containerStyle}>Not found</div>;
+  if (!p) return <div style={containerStyle}>Product not found</div>;
 
   const originalPrice = p.price_cents / 100;
   const discount = (p.discount_cents || 0) / 100;
@@ -89,99 +87,85 @@ export default function ProductDetail() {
   const hasDiscount = p.discount_cents > 0;
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "#f8fafc",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
-    }}>
-      <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
-        <Link to="/" style={{ color: "#64748b", textDecoration: "none", fontWeight: 500 }}>← Back</Link>
+    <div style={{ minHeight: "100vh", background: "#0a0a0a" }}>
+      
+      {/* Top Bar */}
+      <div style={{ padding: "16px 24px", borderBottom: "1px solid #333", background: "#000" }}>
+        <Link to="/products" style={{ color: "#888", textDecoration: "none", fontWeight: 500, fontSize: 14 }}>
+            ← Back to Products
+        </Link>
       </div>
+
       <div
         style={{
-          maxWidth: 900,
-          margin: "0 auto",
+          maxWidth: 1000,
+          margin: "40px auto",
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 40,
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", // Responsive stack
+          gap: 48,
           padding: 24,
         }}
       >
+        {/* Left Column: Image */}
         <div>
           {p.image_url && (
-            <img
-              src={p.image_url}
-              alt={p.name}
-              style={{ width: "100%", borderRadius: 12, border: "1px solid #e5e7eb" }}
-            />
+            <div style={{ border: "1px solid #333", borderRadius: 12, overflow: 'hidden', background: '#000' }}>
+                <img
+                src={p.image_url}
+                alt={p.name}
+                style={{ width: "100%", display: "block" }}
+                />
+            </div>
           )}
         </div>
-        <div>
-          <h1 style={{ fontSize: 24, marginBottom: 8, fontWeight: 800, letterSpacing: "-0.5px" }}>{p.name}</h1>
 
-          <div style={{ marginBottom: 12 }}>
+        {/* Right Column: Details */}
+        <div>
+          <h1 style={{ fontSize: 32, marginBottom: 12, fontWeight: 800, color: '#fff', letterSpacing: "-1px" }}>
+            {p.name}
+          </h1>
+
+          <div style={{ marginBottom: 24 }}>
             {hasDiscount ? (
               <>
-                {/* Final (discounted) price */}
-                <div
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 22,
-                    color: "#16a34a",
-                    marginBottom: 4,
-                  }}
-                >
-                  ${finalPrice.toFixed(2)}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                    <span style={{ fontWeight: 800, fontSize: 28, color: "#fff" }}>
+                        ${finalPrice.toFixed(2)}
+                    </span>
+                    <span style={{ fontSize: 18, color: "#666", textDecoration: "line-through" }}>
+                        ${originalPrice.toFixed(2)}
+                    </span>
                 </div>
-
-                {/* Original price, struck through */}
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: "#9ca3af",
-                    textDecoration: "line-through",
-                    marginBottom: 2,
-                  }}
-                >
-                  ${originalPrice.toFixed(2)}
-                </div>
-
-                {/* Discount amount / “You save …” */}
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#16a34a",
-                    fontWeight: 600,
-                  }}
-                >
+                <div style={{ fontSize: 14, color: "#00ff41", fontWeight: 600, marginTop: 4 }}>
                   You save ${discount.toFixed(2)}
                 </div>
               </>
             ) : (
-              // No discount — just show the normal price
-              <div style={{ fontWeight: 700, fontSize: 20 }}>
+              <div style={{ fontWeight: 800, fontSize: 28, color: "#fff" }}>
                 ${originalPrice.toFixed(2)}
               </div>
             )}
           </div>
 
-
-
-          <p style={{ color: "#475569", marginBottom: 32, lineHeight: 1.6 }}>{p.short}</p>
+          <p style={{ color: "#ccc", marginBottom: 40, lineHeight: 1.6, fontSize: 16 }}>
+            {p.short || "No description available."}
+          </p>
           
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 16, flexDirection: 'column' }}>
               <button
                 onClick={() => nav(`/checkout/${p.slug ?? p.id}`)}
                 style={{
-                  flex: 1,
-                  border: "1px solid #111",
-                  background: "#111",
-                  color: "#fff",
-                  padding: "12px 24px",
+                  width: "100%",
+                  border: "none",
+                  background: "#00ff41", // Neon Green
+                  color: "#000",         // Black Text
+                  padding: "16px 24px",
                   borderRadius: 8,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: 16,
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px"
                 }}
               >
                 Buy Now
@@ -191,20 +175,18 @@ export default function ProductDetail() {
                 onClick={handleAddToCart}
                 disabled={adding}
                 style={{
-                  flex: 1,
-                  border: "1px solid #e5e7eb",
-                  background: "#fff",
-                  color: "#111",
-                  padding: "12px 24px",
+                  width: "100%",
+                  border: "1px solid #333",
+                  background: "transparent",
+                  color: "#fff",
+                  padding: "16px 24px",
                   borderRadius: 8,
                   fontWeight: 600,
                   fontSize: 16,
                   cursor: "pointer",
-                  opacity: adding ? 0.7 : 1,
-                  transition: "background 0.2s"
+                  opacity: adding ? 0.6 : 1,
+                  transition: "all 0.2s"
                 }}
-                // Add hover effect via simple inline style logic isn't perfect, 
-                // but standard CSS classes would be better here.
               >
                 {adding ? "Adding..." : "Add to Cart"}
               </button>

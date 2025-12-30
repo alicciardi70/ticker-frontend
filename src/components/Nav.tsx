@@ -1,21 +1,20 @@
-// src/components/Nav.tsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useCart } from "../context/CartContext"; // <--- IMPORT HOOK
+import { useCart } from "../context/CartContext";
 
-// Define dark theme colors
+// Updated Dark Theme Colors
 const colors = {
-  navBackground: "#000000",
-  navBorder: "#333333",
-  text: "#f9fafb",
-  textActive: "#ffffff",
-  linkActiveBg: "#1f2937",
-  buttonBg: "#1f2937",
-  menuOverlayBg: "#111827",
-  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  navBackground: "#000000", // Pure black header
+  navBorder: "#222",        // Subtle border
+  text: "#888",             // Muted text for inactive
+  textActive: "#ffffff",    // White for active
+  accent: "#00ff41",        // Ticker Green
+  linkActiveBg: "#111",
+  buttonBg: "#111",
+  menuOverlayBg: "#0a0a0a",
+  fontFamily: "inherit",
 };
 
-// Helper component for individual links
 function NavLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick?: () => void }) {
   const { pathname } = useLocation();
   const isActive = pathname === to || (to !== "/" && pathname.startsWith(to));
@@ -25,17 +24,19 @@ function NavLink({ to, children, onClick }: { to: string; children: React.ReactN
       to={to}
       onClick={onClick}
       style={{
-        padding: "10px 16px",
-        borderRadius: 8,
+        padding: "8px 16px",
+        borderRadius: 4,
         textDecoration: "none",
-        color: isActive ? colors.textActive : colors.text,
-        background: isActive ? colors.linkActiveBg : "transparent",
+        color: isActive ? colors.accent : colors.text, // Green when active
+        background: "transparent",
         fontWeight: isActive ? 600 : 400,
-        display: "flex", // Changed to flex for badges
+        display: "flex", 
         alignItems: "center",
         gap: 8,
-        transition: "all 0.2s ease-in-out",
+        transition: "all 0.2s ease",
         fontFamily: colors.fontFamily,
+        fontSize: '14px',
+        letterSpacing: '-0.02em'
       }}
     >
       {children}
@@ -50,7 +51,7 @@ export default function Nav() {
   
   const nav = useNavigate();
   const location = useLocation();
-  const { cartCount } = useCart(); // <--- GET CART COUNT
+  const { cartCount } = useCart(); 
 
   useEffect(() => {
     const handleResize = () => {
@@ -72,26 +73,22 @@ export default function Nav() {
     nav("/login");
   }
 
-  // Common Navigation Items
   const NavItems = () => (
     <>
       <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
       <NavLink to="/products" onClick={() => setMenuOpen(false)}>Products</NavLink>
-      
-      {/* CART LINK WITH BADGE */}
       <NavLink to="/cart" onClick={() => setMenuOpen(false)}>
         Cart
         {cartCount > 0 && (
           <span style={{ 
-            background: "#ef4444", // Red badge
-            color: "white", 
-            fontSize: 11, 
-            fontWeight: 700, 
+            background: colors.accent, 
+            color: "#000", 
+            fontSize: 10, 
+            fontWeight: 800, 
             padding: "2px 6px", 
             borderRadius: 99,
-            minWidth: 18,
+            minWidth: 16,
             textAlign: 'center',
-            lineHeight: 1
           }}>
             {cartCount}
           </span>
@@ -106,18 +103,17 @@ export default function Nav() {
         <NavLink to="/login" onClick={() => setMenuOpen(false)}>Login</NavLink>
       ) : (
         <button onClick={logout} style={{ 
-          padding: "10px 16px", 
+          padding: "8px 16px", 
           width: "100%",
           textAlign: "left",
-          borderRadius: 8, 
           border: "none", 
           background: "transparent",
           color: colors.text,
           cursor: "pointer",
-          fontWeight: 600,
+          fontWeight: 400,
           marginTop: isMobile ? "10px" : "0",
           fontFamily: colors.fontFamily,
-          fontSize: "inherit"
+          fontSize: "14px"
         }}>
           Logout
         </button>
@@ -140,75 +136,37 @@ export default function Nav() {
         alignItems: "center", 
         justifyContent: "space-between" 
       }}>
-        
-        {/* LOGO */}
         <Link to="/" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          <img 
-            src="/logo_blue.jpg" 
-            alt="Ticker Ink" 
-            style={{ 
-              height: isMobile ? "70px" : "120px", 
-              width: "auto",
-              objectFit: "contain",
-              transition: "height 0.3s ease"
-            }} 
-          />
+            <div style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '-1px', color: '#fff' }}>
+                TICKER<span style={{ color: '#00ff41' }}>.INK</span>
+            </div>
         </Link>
 
-        {/* DESKTOP NAV */}
         {!isMobile && (
-          <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
             <NavItems />
           </nav>
         )}
 
-        {/* MOBILE HAMBURGER */}
         {isMobile && (
           <button 
             onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "white" }}
           >
-            {/* Simple Hamburger Icon */}
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {menuOpen ? (
-                <>
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </>
-              ) : (
-                <>
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </>
-              )}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
         )}
       </div>
 
-      {/* MOBILE MENU */}
       {isMobile && menuOpen && (
         <div style={{
-          position: "absolute",
-          top: "100%",
-          left: 0,
-          right: 0,
-          background: colors.menuOverlayBg,
-          borderBottom: `1px solid ${colors.navBorder}`,
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          boxShadow: "0px 10px 15px -3px rgba(0,0,0,0.5)"
+          position: "absolute", top: "100%", left: 0, right: 0,
+          background: colors.menuOverlayBg, borderBottom: `1px solid ${colors.navBorder}`,
+          padding: "20px", display: "flex", flexDirection: "column", gap: "10px"
         }}>
           <NavItems />
         </div>

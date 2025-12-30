@@ -1,192 +1,295 @@
-/* ... Keep all existing root variables ... */
+/* DeviceTeams.css - DARK MODE OVERHAUL */
+
 :root {
-  --bg: #f6f7fb;
-  --panel: #fff;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --text: #0f172a;
-  --primary: #2563eb;
-  --primary-600: #1d4ed8;
-  --danger: #dc2626;
-  --green: #16a34a;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Core Colors */
+  --bg: #0a0a0a;         /* Deep Black (Matches Layout) */
+  --panel: #111111;      /* Slightly lighter black for cards */
+  --border: #333333;     /* Dark Gray borders */
+  --text: #ffffff;       /* White text */
+  --muted: #888888;      /* Gray text */
+  
+  /* Accents */
+  --primary: #00ff41;    /* Ticker Neon Green */
+  --primary-dim: rgba(0, 255, 65, 0.1);
+  --danger: #ef4444;     /* Red */
+  
+  /* Utilities */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ... Keep .page, .header, .btn styles ... */
-
-.page {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+body {
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
 }
 
-/* ... (Keep existing button/input styles) ... */
-
-/* --- NEW: TABS ROW --- */
+/* --- TABS ROW --- */
 .tabs-row {
   display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
 }
 
 .tab-btn {
-  padding: 10px 20px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--muted);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  margin-bottom: -2px; /* overlap border */
   cursor: pointer;
-  transition: 0.2s;
-}
-
-.tab-btn:hover {
-  color: var(--text);
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-
-/* --- NEW: CONFIG PANEL --- */
-.config-panel {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-}
-
-.panel-title {
-  font-size: 14px;
-  font-weight: 700;
+  transition: all 0.2s ease;
   text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 12px;
   letter-spacing: 0.05em;
 }
 
-.panel-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  align-items: center;
+.tab-btn:hover {
+  color: #fff;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  cursor: pointer;
+.tab-btn.active {
+  color: #fff;
+  border-bottom-color: var(--primary);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
 }
 
-.checkbox-label input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-}
-
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.number-input {
-  width: 60px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.sub-text {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* --- Empty State --- */
-.empty-state {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 60px 20px;
-  text-align: center;
-  margin-top: 20px;
-}
-
-/* ... Keep existing .toolbar, .pills, .search ... */
-/* ... Keep existing .main, .grid, .card ... */
-/* ... Keep existing .aside, .list, .row ... */
-
-/* Ensure you keep the rest of your original CSS below here */
-/* For example the .main grid areas logic, .switch, etc. */
-/* ... */
+/* --- LAYOUT GRID --- */
 .main {
   display: grid;
-  gap: 28px;
+  gap: 24px;
   grid-template-columns: 1fr;
-  grid-template-areas: "sidebar" "catalog";
 }
-.main > div:first-of-type { grid-area: catalog; }
-.aside { grid-area: sidebar; width: 100%; position: static; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; height: fit-content; }
 
 @media (min-width: 1024px) {
   .main {
-    grid-template-columns: 1fr 460px;
-    grid-template-areas: "catalog sidebar";
+    grid-template-columns: 1fr 320px; /* Sidebar width */
   }
-  .aside { position: sticky; top: 16px; }
 }
 
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-.card { display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 14px; transition: 0.15s; }
-.card:hover { box-shadow: var(--shadow); }
-.logo { width: 36px; height: 36px; border-radius: 8px; background: #f3f4f6; display: grid; place-items: center; font-size: 18px; }
-.title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
-.meta { font-size: 12px; color: var(--muted); }
-.switch { position: relative; width: 48px; height: 26px; background: #e5e7eb; border-radius: 999px; flex: 0 0 auto; border: 1px solid var(--border); cursor: pointer; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 999px; transition: 0.15s; box-shadow: var(--shadow); }
-.switch.on { background: #2563eb; border-color: #2563eb; }
-.switch.on::after { transform: translateX(22px); }
-.aside-h { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f9fafb; border-bottom: 1px solid var(--border); }
-.aside-h .count { color: var(--muted); font-size: 12px; }
-.list { max-height: 70vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
-.row { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); }
-.row:last-child { border-bottom: none; }
-.small-logo { width: 26px; height: 26px; border-radius: 6px; background: #f3f4f6; display: grid; place-items: center; font-size: 14px; }
-.row-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-meta { font-size: 12px; color: var(--muted); }
-.row .actions { display: flex; gap: 6px; margin-left: auto; }
-.icon-btn { border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 6px; cursor: pointer; display: grid; place-items: center; width: 28px; height: 28px; font-size: 12px; }
-.icon-btn:hover { background: #f8fafc; }
-.icon-btn.danger { color: var(--danger); border-color: #fecaca; }
-.inline-controls { display: flex; gap: 8px; margin-left: auto; align-items: center; }
-.text-input { width: 88px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
-.select { min-width: 92px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 13px; }
-.footer { display: flex; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid var(--border); background: #fff; flex-wrap: wrap; gap: 8px; }
-.badge { margin-left: 8px; font-size: 12px; color: var(--muted); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.h1 { font-size: 28px; font-weight: 700; margin: 0 0 2px; }
-.sub { color: var(--muted); font-size: 14px; }
-.btn { border: 1px solid var(--border); background: #fff; color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; }
-.btn:hover { background: #fafafa; }
-.btn.primary { background: var(--green); border-color: var(--green); color: #fff; box-shadow: var(--shadow); }
-.btn.primary:hover { background: #149246; }
-.btn.link { color: #2563eb; border-color: transparent; background: transparent; }
-.toolbar { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
-.pills { display: flex; gap: 6px; background: #eef2ff; padding: 6px; border-radius: 12px; overflow-x: auto; }
-.pill { padding: 6px 10px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer; font-size: 14px; white-space: nowrap; }
-.pill.active { background: #fff; box-shadow: var(--shadow); font-weight: 600; }
-.search { position: relative; margin-left: auto; }
-.search input { width: 320px; padding: 10px 12px 10px 34px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px; }
-.search span { position: absolute; left: 10px; top: 10px; color: #9ca3af; font-size: 14px; }
+/* --- CARDS (Teams, Stock items) --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: #555;
+  transform: translateY(-1px);
+}
+
+/* Active State for Cards (When selected) */
+.switch.on ~ .card, /* If you use sibling selectors */
+.card.selected { 
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  box-shadow: 0 0 15px var(--primary-dim);
+}
+
+/* --- LOGOS & ICONS --- */
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: #000; /* Black background for logos */
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+.small-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: #000;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.small-logo img, .logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --- TYPOGRAPHY --- */
+.title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* --- SIDEBAR LIST --- */
+.aside {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  height: fit-content;
+}
+
+.aside-h {
+  padding: 12px 16px;
+  background: #000;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* --- BUTTONS & CONTROLS --- */
+.switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #222;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #666;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+/* Active Switch */
+.switch.on {
+  border-color: var(--primary);
+  background: rgba(0, 255, 65, 0.1);
+}
+
+.switch.on::after {
+  background: var(--primary);
+  transform: translateX(20px);
+  box-shadow: 0 0 10px var(--primary);
+}
+
+.icon-btn.danger {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.icon-btn.danger:hover {
+  color: var(--danger);
+}
+
+/* --- PILLS / FILTERS --- */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.pill:hover {
+  color: #fff;
+  border-color: #666;
+}
+
+.pill.active {
+  background: var(--primary);
+  color: #000;
+  border-color: var(--primary);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+/* --- FORMS & INPUTS --- */
+.search-box input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+  outline: none;
+}
+
+.search-box input:focus {
+  border-color: var(--primary);
+}
+
+.checkbox-label {
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+}

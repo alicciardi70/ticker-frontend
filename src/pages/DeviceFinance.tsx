@@ -4,7 +4,6 @@ import "./DeviceTeams.css";
 import { useToast } from "../context/ToastContext"; 
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
-// ADD THIS LINE
 const STOCK_API_KEY = "d4ve149r01qs25evfcm0d4ve149r01qs25evfcmg";
 
 function authHeaders() {
@@ -13,6 +12,56 @@ function authHeaders() {
 }
 
 const TABS = ["Stocks", "Crypto", "Indices", "Economic"] as const;
+
+// Reusable Dark Mode Styles (similar to Weather panel)
+const styles = {
+    card: {
+        background: '#111',
+        padding: '24px',
+        borderRadius: '12px',
+        border: '1px solid #333'
+    },
+    row: {
+        background: '#111',
+        border: '1px solid #333',
+        padding: '10px 12px',
+        borderRadius: '8px',
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        cursor: 'move',
+        color: '#fff'
+    },
+    logoWrapper: {
+        marginRight: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#000', // Dark background for logos
+        borderRadius: '50%',
+        width: 32,
+        height: 32,
+        overflow: 'hidden',
+        border: '1px solid #333'
+    },
+    sectionTitle: {
+        marginBottom: 10,
+        fontSize: 14,
+        textTransform: 'uppercase' as const,
+        color: '#888',
+        letterSpacing: 0.5,
+        fontWeight: 700
+    },
+    input: {
+        background: '#0a0a0a',
+        border: '1px solid #333',
+        color: '#fff',
+        padding: '12px',
+        borderRadius: '8px',
+        width: '100%',
+        fontSize: '14px'
+    }
+};
 
 type CryptoItem = {
   id: string;
@@ -44,12 +93,13 @@ const getIconSrc = (url: string | null | undefined) => {
 
 // --- HELPER: Grip Icon for Dragging ---
 const GripIcon = () => (
-    <svg width="12" height="16" viewBox="0 0 6 10" fill="#ccc" style={{ cursor: 'grab', marginRight: 8 }}>
+    <svg width="12" height="16" viewBox="0 0 6 10" fill="#666" style={{ cursor: 'grab', marginRight: 12 }}>
         <path d="M0 0h2v2H0V0zm4 0h2v2H4V0zM0 4h2v2H0V4zm4 0h2v2H4V4zM0 8h2v2H0V8zm4 0h2v2H4V8z"/>
     </svg>
 );
 
-// --- SEARCH COMPONENTS (Unchanged logic, simplified styling) ---
+// --- SEARCH COMPONENTS ---
+
 function CryptoSearch({ onSelect }: { onSelect: (coin: any) => void }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<any[]>([]);
@@ -75,12 +125,13 @@ function CryptoSearch({ onSelect }: { onSelect: (coin: any) => void }) {
                 placeholder="Search to add crypto (e.g. Bitcoin)..." 
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                style={styles.input}
             />
-            {query.length >= 2 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            {query.length >= 2 && results.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
                     {results.map(coin => (
-                        <div key={coin.id} onClick={() => { onSelect(coin); setQuery(""); setResults([]); }} style={{ padding: '10px', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div key={coin.id} onClick={() => { onSelect(coin); setQuery(""); setResults([]); }} 
+                             style={{ padding: '12px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
                             <img src={coin.thumb} alt={coin.symbol} style={{ width: 20, height: 20, borderRadius: '50%' }} />
                             <div>
                                 <div style={{ fontWeight: 600 }}>{coin.name}</div>
@@ -92,10 +143,6 @@ function CryptoSearch({ onSelect }: { onSelect: (coin: any) => void }) {
         </div>
     );
 }
-
-// src/components/DeviceFinance.tsx
-
-// REPLACE the existing StockSearch function with this updated version:
 
 function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stock: any) => void }) {
     const [query, setQuery] = useState("");
@@ -143,25 +190,12 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
                     placeholder="Search to add stocks (e.g. AAPL)..." 
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    style={{ 
-                        width: '100%', 
-                        padding: '12px', 
-                        paddingRight: '40px',
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd', 
-                        fontSize: '14px' 
-                    }}
+                    style={{ ...styles.input, paddingRight: '40px' }}
                 />
                 {isLoading && (
                     <div style={{ 
-                        position: 'absolute', 
-                        right: 12, 
-                        top: '50%', 
-                        transform: 'translateY(-50%)',
-                        color: '#999',
-                        fontSize: '12px',
-                        fontStyle: 'italic',
-                        pointerEvents: 'none'
+                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                        color: '#666', fontSize: '12px', fontStyle: 'italic', pointerEvents: 'none'
                     }}>
                         ...
                     </div>
@@ -169,13 +203,12 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
             </div>
 
             {query.length >= 2 && results.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
                     {results.map((stock, i) => (
-                        <div key={i} onClick={() => { onSelect(stock); setQuery(""); setResults([]); }} style={{ padding: '10px', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {/* FIXED: Increased width to 90px and added flexShrink: 0 */}
-                            <div style={{ fontWeight: 'bold', width: 90, flexShrink: 0 }}>{stock.symbol}</div>
-                            {/* Added truncation styles to description */}
-                            <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stock.description}</div>
+                        <div key={i} onClick={() => { onSelect(stock); setQuery(""); setResults([]); }} 
+                             style={{ padding: '12px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
+                            <div style={{ fontWeight: 'bold', width: 90, flexShrink: 0, color: '#00ff41' }}>{stock.symbol}</div>
+                            <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#ccc' }}>{stock.description}</div>
                         </div>
                     ))}                    
                 </div>
@@ -185,7 +218,7 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
 }
 
 
-export function DeviceFinancePanel({ deviceId }: Props) {
+export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -194,8 +227,6 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   const [showHourly, setShowHourly] = useState(false);
   const [showDaily, setShowDaily]   = useState(false);
   const [showWeekly, setShowWeekly] = useState(false);
-
-// -- NEW: Indices Setting --
   const [showIndices, setShowIndices] = useState(false);
 
   // Data
@@ -209,7 +240,6 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   // Drag & Drop Refs
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
-
 
   // --- 1. LOAD DATA ---
   const loadData = useCallback(async () => {
@@ -227,9 +257,7 @@ export function DeviceFinancePanel({ deviceId }: Props) {
         setShowHourly(d.finance_show_hourly_change ?? false);
         setShowDaily(d.finance_show_daily_change ?? false);
         setShowWeekly(d.finance_show_weekly_change ?? false);
-        // Load Indices Setting
         setShowIndices(d.show_indices ?? false);
-
       }
       
       if (cRes.ok) setCryptoData(await cRes.json());
@@ -247,13 +275,11 @@ export function DeviceFinancePanel({ deviceId }: Props) {
 
 
   // --- 2. AUTO-SAVE FUNCTION ---
-  // This is called explicitly after any data modification
   const autoSave = async (newStocks?: StockItem[], newCryptos?: CryptoItem[]) => {
       setIsSaving(true);
       try {
-          // Use provided data or fall back to current state
           const stocksToSave = newStocks || stockData;
-          const cryptosToSave = newCryptos || cryptoData; // Note: cryptoData contains ALL, we filter selected
+          const cryptosToSave = newCryptos || cryptoData; 
 
           // A. Save Stocks
           const stockPayload = {
@@ -284,15 +310,12 @@ export function DeviceFinancePanel({ deviceId }: Props) {
               }))
           };
 
-
-        // [FIXED]: Check response
         const cRes = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify(cryptoPayload),
         });
         if (!cRes.ok) throw new Error("Failed to save crypto");
-
 
       } catch (e) {
           console.error("Auto-save failed", e);
@@ -302,12 +325,9 @@ export function DeviceFinancePanel({ deviceId }: Props) {
       }
   };
 
-
-// --- NEW: Toggle Indices ---
-const handleIndicesToggle = async (checked: boolean) => {
+  const handleIndicesToggle = async (checked: boolean) => {
     setShowIndices(checked);
     try {
-        // [FIXED]: Check response
         const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -318,14 +338,10 @@ const handleIndicesToggle = async (checked: boolean) => {
         console.error(e);
         toast?.("Failed to save indices setting", "error");
     }
-};
+  };
 
   // --- 3. EVENT HANDLERS ---
-
-  // Stock Add
-// Stock Add
   const handleStockAdd = async (s: any) => {
-    // Optimistic Add
     const newItem: StockItem = {
         id: crypto.randomUUID(), 
         stock_ticker: s.symbol, 
@@ -339,7 +355,6 @@ const handleIndicesToggle = async (checked: boolean) => {
     setStockData(newList);
     autoSave(newList); 
 
-    // Fetch Logo Background (Directly using constant)
     fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${s.symbol}&token=${STOCK_API_KEY}`)
         .then(r => r.json())
         .then(profile => {
@@ -347,13 +362,9 @@ const handleIndicesToggle = async (checked: boolean) => {
                 setStockData(prev => prev.map(p => p.id === newItem.id ? { ...p, logo_url: profile.logo } : p));
             }
         });
-  }; // <--- Function ends here directly
+  }; 
 
-    // Crypto Add
-// src/components/DeviceFinance.tsx
-
-// 2. UPDATED HANDLER
-const handleCryptoAdd = async (coin: any) => {
+  const handleCryptoAdd = async (coin: any) => {
     try {
         const res = await fetch(`${API_BASE}/devices/${deviceId}/crypto/validate-and-add`, {
             method: 'POST',
@@ -363,11 +374,10 @@ const handleCryptoAdd = async (coin: any) => {
                 name: coin.name, 
                 image_url: coin.thumb,
                 fetch_id: coin.id,
-                currency: targetCurrency // <--- Sends 'usd', 'eur', 'gbp', etc.
+                currency: targetCurrency 
             })
         });
         
-        // Safety check to prevent white screen
         if (!res.ok) {
             const err = await res.json();
             toast?.(err.detail || "Failed to add coin. Check currency support.", "error");
@@ -376,12 +386,11 @@ const handleCryptoAdd = async (coin: any) => {
         
         const validatedCoin = await res.json();
         
-        // Optimistic Add
         const newItem: CryptoItem = {
             id: validatedCoin.id,
             pair: validatedCoin.pair,
             code: validatedCoin.code,
-            currency: targetCurrency, // <--- Store locally for display
+            currency: targetCurrency, 
             description: validatedCoin.description,
             selected: true,
             order: cryptoData.filter(c => c.selected).length + 1
@@ -389,8 +398,6 @@ const handleCryptoAdd = async (coin: any) => {
 
         const newList = [...cryptoData, newItem];
         setCryptoData(newList);
-        
-        // Save changes (pass undefined for stocks to keep them as-is)
         await autoSave(undefined, newList); 
         toast?.(`Added ${validatedCoin.code.toUpperCase()} (${targetCurrency.toUpperCase()})`);
 
@@ -398,27 +405,8 @@ const handleCryptoAdd = async (coin: any) => {
         console.error(e);
         toast?.("Critical Error adding coin", "error");
     }
-};
-
-
-  const toggleCryptoSelection = (id: string) => {
-      setCryptoData(prev => {
-          const target = prev.find(p => p.id === id);
-          if(!target) return prev;
-          
-          let newList;
-          if (!target.selected) {
-              // Add
-              const maxOrder = prev.reduce((max, p) => p.selected ? Math.max(max, p.order) : max, 0);
-              newList = prev.map(p => p.id === id ? { ...p, selected: true, order: maxOrder + 1 } : p);
-          } else {
-              // Remove
-              newList = prev.map(p => p.id === id ? { ...p, selected: false, order: 0 } : p);
-          }
-          autoSave(undefined, newList);
-          return newList;
-      });
   };
+
 
   const removeStock = (id: string) => {
       const newList = stockData.filter(s => s.id !== id);
@@ -426,17 +414,19 @@ const handleCryptoAdd = async (coin: any) => {
       autoSave(newList);
   };
   
-  const removeCrypto = (id: string) => toggleCryptoSelection(id);
+  const removeCrypto = (id: string) => {
+      setCryptoData(prev => {
+          // Remove by deselecting
+          const newList = prev.map(p => p.id === id ? { ...p, selected: false, order: 0 } : p);
+          autoSave(undefined, newList);
+          return newList;
+      });
+  };
 
 
   // --- 4. DRAG AND DROP LOGIC ---
   const handleSort = () => {
-      // Duplicate list
       const listCopy = activeTab === 'Stocks' ? [...stockData] : [...cryptoData];
-      
-      // If we are in Crypto, we are only reordering the *selected* subset visually, 
-      // but in the data model we need to be careful.
-      // Simplification: For Crypto, we extract selected, reorder, then merge back.
       
       if (dragItem.current === null || dragOverItem.current === null) return;
       if (dragItem.current === dragOverItem.current) return;
@@ -446,20 +436,16 @@ const handleCryptoAdd = async (coin: any) => {
           listCopy.splice(dragItem.current, 1);
           listCopy.splice(dragOverItem.current, 0, draggedItemContent);
           
-          // Reassign display_order
           const reordered = listCopy.map((item: any, index) => ({ ...item, display_order: index + 1 }));
-          
           setStockData(reordered);
           autoSave(reordered as StockItem[]);
       } 
       else if (activeTab === 'Crypto') {
-          // Filter only selected for the drag view
           const selected = cryptoData.filter(c => c.selected).sort((a,b) => a.order - b.order);
           const draggedItemContent = selected[dragItem.current];
           selected.splice(dragItem.current, 1);
           selected.splice(dragOverItem.current, 0, draggedItemContent);
 
-          // Update orders
           const newOrderMap = new Map();
           selected.forEach((item, idx) => newOrderMap.set(item.id, idx + 1));
 
@@ -472,32 +458,37 @@ const handleCryptoAdd = async (coin: any) => {
           autoSave(undefined, merged);
       }
       
-      // Reset
       dragItem.current = null;
       dragOverItem.current = null;
   };
 
 
-  if (loading) return <div className="dv-muted">Loading finance...</div>;
+  if (loading) return <div style={{color: '#666'}}>Loading finance...</div>;
 
-  // Helpers for Render
   const selectedCryptos = cryptoData.filter(c => c.selected).sort((a,b) => a.order - b.order);
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
        
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Finance Settings</h3>
+           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0, color: '#fff' }}>Finance Settings</h3>
            {isSaving && <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>Saving changes...</div>}
        </div>
-
-
 
        {/* Tabs */}
        <div className="toolbar" style={{ marginBottom: 20 }}>
             <div className="pills">
                 {TABS.map(tab => (
-                    <button key={tab} className={`pill ${activeTab === tab ? 'active':''}`} onClick={()=>setActiveTab(tab)}>
+                    <button key={tab} 
+                        onClick={()=>setActiveTab(tab)}
+                        style={{
+                            background: activeTab === tab ? '#00ff41' : '#111',
+                            color: activeTab === tab ? '#000' : '#fff',
+                            border: '1px solid #333',
+                            padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontWeight: 600,
+                            marginRight: 8
+                        }}
+                    >
                         {tab}
                     </button>
                 ))}
@@ -510,7 +501,7 @@ const handleCryptoAdd = async (coin: any) => {
 
                 <StockSearch deviceId={deviceId} onSelect={handleStockAdd} />
                 
-                <h4 style={{marginBottom: 10, fontSize: 14, textTransform: 'uppercase', color: '#888', letterSpacing: 0.5 }}>
+                <h4 style={styles.sectionTitle}>
                     Selected Stocks ({stockData.length})
                 </h4>
 
@@ -518,17 +509,16 @@ const handleCryptoAdd = async (coin: any) => {
                     {stockData.map((item, idx) => (
                         <div 
                             key={item.id} 
-                            className="row"
                             draggable
                             onDragStart={() => (dragItem.current = idx)}
                             onDragEnter={() => (dragOverItem.current = idx)}
                             onDragEnd={handleSort}
                             onDragOver={(e) => e.preventDefault()}
-                            style={{ cursor: 'move', background: 'white', border:'1px solid #eee', padding: '8px 12px', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center'}}
+                            style={styles.row}
                         >
                             <GripIcon />
                             
-                            <div className="small-logo" style={{ marginRight: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: '50%', width: 32, height: 32, overflow: 'hidden' }}>
+                            <div style={styles.logoWrapper}>
                                 {item.logo_url ? (
                                     <img src={item.logo_url} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                 ) : (
@@ -537,7 +527,7 @@ const handleCryptoAdd = async (coin: any) => {
                             </div>
 
                             <div style={{flex: 1}}>
-                                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#333' }}>{item.stock_ticker}</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#fff' }}>{item.stock_ticker}</div>
                                 <input 
                                     placeholder="Display Name" 
                                     value={item.display_text || ""} 
@@ -545,24 +535,23 @@ const handleCryptoAdd = async (coin: any) => {
                                         const val = e.target.value;
                                         setStockData(prev => prev.map(p => p.id === item.id ? {...p, display_text: val} : p));
                                     }}
-                                    onBlur={() => autoSave()} // Save on finish typing
-                                    style={{ padding: '2px 0', fontSize: '12px', color: '#666', width: '100%', border: 'none', background: 'transparent', outline: 'none' }}
+                                    onBlur={() => autoSave()}
+                                    style={{ padding: '2px 0', fontSize: '12px', color: '#888', width: '100%', border: 'none', background: 'transparent', outline: 'none' }}
                                 />
                             </div>
 
-                            <button className="icon-btn danger" onClick={() => removeStock(item.id)}>✕</button>
+                            <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={() => removeStock(item.id)}>✕</button>
                         </div>
                     ))}
-                    {stockData.length === 0 && <div style={{color: '#999', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No stocks added.</div>}
+                    {stockData.length === 0 && <div style={{color: '#666', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No stocks added.</div>}
                 </div>
             </div>
         )}
 
         {/* --- CRYPTO TAB --- */}
-{activeTab === 'Crypto' && (
+        {activeTab === 'Crypto' && (
             <div style={{ gridColumn: '1/-1' }}>
                 
-                {/* --- NEW: Search + Currency Dropdown --- */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                     <div style={{ flex: 1 }}>
                         <CryptoSearch onSelect={handleCryptoAdd} />
@@ -572,14 +561,11 @@ const handleCryptoAdd = async (coin: any) => {
                         value={targetCurrency} 
                         onChange={(e) => setTargetCurrency(e.target.value)}
                         style={{ 
-                            padding: '0 15px', 
-                            height: 42, // Matches search input height
-                            borderRadius: 8, 
-                            border: '1px solid #ddd', 
-                            background: '#f8f9fa',
-                            fontWeight: 'bold',
+                            ...styles.input,
+                            width: 'auto',
+                            minWidth: '80px',
                             cursor: 'pointer',
-                            minWidth: '80px'
+                            height: '45px'
                         }}
                     >
                         <option value="usd">USD ($)</option>
@@ -588,9 +574,8 @@ const handleCryptoAdd = async (coin: any) => {
                         <option value="jpy">JPY (¥)</option>
                     </select>
                 </div>
-                {/* --------------------------------------- */}
 
-                <h4 style={{marginBottom: 10, fontSize: 14, textTransform: 'uppercase', color: '#888', letterSpacing: 0.5 }}>
+                <h4 style={styles.sectionTitle}>
                     Selected Cryptos ({selectedCryptos.length})
                 </h4>
 
@@ -598,65 +583,62 @@ const handleCryptoAdd = async (coin: any) => {
                     {selectedCryptos.map((item, idx) => (
                         <div 
                             key={item.id} 
-                            className="row"
                             draggable
                             onDragStart={() => (dragItem.current = idx)}
                             onDragEnter={() => (dragOverItem.current = idx)}
                             onDragEnd={handleSort}
                             onDragOver={(e) => e.preventDefault()}
-                            style={{ cursor: 'move', background: 'white', border:'1px solid #eee', padding: '10px', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center'}}
+                            style={styles.row}
                         >
                             <GripIcon />
                             
-                            <div className="small-logo" style={{ marginRight: 10 }}>
+                            <div style={styles.logoWrapper}>
                                 {item.image_url ? (
-                                    <img src={getIconSrc(item.image_url)} alt={item.code} className="small-logo" style={{width:24, height:24, borderRadius:'50%'}} />
+                                    <img src={getIconSrc(item.image_url)} alt={item.code} style={{width:24, height:24, borderRadius:'50%'}} />
                                 ) : (
                                     <span style={{ fontSize: 20 }}>🪙</span>
                                 )}
                             </div>
                             <div style={{flex:1}}>
-                                <div style={{fontWeight: 'bold'}}>{item.description}</div>
-                                <div style={{ fontSize: 11, color: '#888' }}>{item.pair.toUpperCase()}</div>
+                                <div style={{fontWeight: 'bold', color: '#fff'}}>{item.description}</div>
+                                <div style={{ fontSize: 11, color: '#666' }}>{item.pair.toUpperCase()}</div>
                             </div>                            
-                            <div style={{ background: '#eee', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, marginRight: 8, color: '#333' }}>
+                            <div style={{ background: '#222', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, marginRight: 8, color: '#ccc', border: '1px solid #333' }}>
                                 {item.code.toUpperCase()}
                             </div>
 
-                            <button className="icon-btn danger" onClick={()=>removeCrypto(item.id)}>✕</button>
+                            <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={()=>removeCrypto(item.id)}>✕</button>
                         </div>
                     ))}
-                    {selectedCryptos.length === 0 && <div style={{color: '#999', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No crypto selected.</div>}
+                    {selectedCryptos.length === 0 && <div style={{color: '#666', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No crypto selected.</div>}
                 </div>
             </div>
         )}
 
-{/* --- INDICES TAB --- */}
+        {/* --- INDICES TAB --- */}
         {activeTab === 'Indices' && (
-            <div style={{ background: '#f9fafb', padding: '24px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Market Indices</h4>
+            <div style={styles.card}>
+                <h4 style={styles.sectionTitle}>Market Indices</h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <label style={{ fontWeight: 600, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ fontWeight: 600, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
                         <input 
                             type="checkbox" 
                             checked={showIndices} 
                             onChange={(e) => handleIndicesToggle(e.target.checked)} 
-                            style={{ width: 18, height: 18, cursor: "pointer" }}
+                            style={{ width: 18, height: 18, cursor: "pointer", accentColor: '#00ff41' }}
                         />
                         <span style={{ fontSize: 15 }}>Show Major Indices (Dow, S&P 500)</span>
                     </label>
-                    <div style={{ fontSize: 12, color: '#666', marginLeft: 28 }}>
+                    <div style={{ fontSize: 12, color: '#888', marginLeft: 28 }}>
                         Displays the current value and daily change for major US market indices.
                     </div>
                 </div>
             </div>
         )}
 
-
-
         {/* --- OTHER TABS --- */}
         { activeTab === 'Economic' && (
-             <div style={{ padding: 40, color: '#999', textAlign: 'center' }}>
+             <div style={{ padding: 40, color: '#666', textAlign: 'center' }}>
                 Coming Soon
             </div>
         )}
