@@ -117,14 +117,15 @@ export function DeviceSportsPanel({ deviceId }: Props) {
           const itemsToSave = newSelected !== undefined ? newSelected : selected;
           const upcomingToSave = newUpcoming !== undefined ? newUpcoming : showUpcoming;
 
-          // 1. Save Globals (if changed)
-          if (newUpcoming !== undefined) {
-            await fetch(`${API_BASE}/devices/${deviceId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify({ sports_show_next_upcoming_games: upcomingToSave }),
-            });
-          }
+//   1. Save Globals (if changed)
+        if (newUpcoming !== undefined) {
+          const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", ...authHeaders() },
+              body: JSON.stringify({ sports_show_next_upcoming_games: upcomingToSave }),
+          });
+          if (!res.ok) throw new Error("Failed to save global settings"); // [FIXED]
+        }
 
           // 2. Save Teams (if changed)
           if (newSelected !== undefined) {
@@ -134,11 +135,12 @@ export function DeviceSportsPanel({ deviceId }: Props) {
                     display_order: i + 1
                 }))
             };
-            await fetch(`${API_BASE}/devices/${deviceId}/teams`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify(teamsPayload),
-            });
+            const res = await fetch(`${API_BASE}/devices/${deviceId}/teams`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", ...authHeaders() },
+              body: JSON.stringify(teamsPayload),
+          });
+          if (!res.ok) throw new Error("Failed to save teams"); // [FIXED]
           }
       } catch (e: any) {
           console.error("Auto-save failed", e);

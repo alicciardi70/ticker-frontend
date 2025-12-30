@@ -4,6 +4,8 @@ import "./DeviceTeams.css";
 import { useToast } from "../context/ToastContext"; 
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
+// ADD THIS LINE
+const STOCK_API_KEY = "d4ve149r01qs25evfcm0d4ve149r01qs25evfcmg";
 
 function authHeaders() {
   const token = localStorage.getItem("token");
@@ -91,38 +93,89 @@ function CryptoSearch({ onSelect }: { onSelect: (coin: any) => void }) {
     );
 }
 
-function StockSearch({ deviceId, stockKey, onSelect }: { deviceId: string, stockKey: string, onSelect: (stock: any) => void }) {
+// src/components/DeviceFinance.tsx
+
+// REPLACE the existing StockSearch function with this updated version:
+
+function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stock: any) => void }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        if (query.length < 2) { setResults([]); return; }
+        if (query.length < 2) { 
+            setResults([]); 
+            setIsLoading(false); 
+            return; 
+        }
+
+        setIsLoading(true);
+
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`${API_BASE}/devices/${deviceId}/stocks/search?q=${query}`, { headers: authHeaders() });
-                if (res.status === 400 && stockKey === "") { toast?.("Please enter API Key first", "error"); return; }
-                if(res.ok) { const data = await res.json(); setResults(data || []); }
-            } catch (e) { console.error(e); }
-        }, 600);
+                const res = await fetch(`https://finnhub.io/api/v1/search?q=${query}&token=${STOCK_API_KEY}`);
+                
+                if (res.status === 400) { 
+                    toast?.("API Configuration Error", "error"); 
+                    return; 
+                }
+                
+                if (res.ok) { 
+                    const data = await res.json(); 
+                    setResults(data.result || []);
+                }
+            } catch (e) { 
+                console.error(e); 
+            } finally {
+                setIsLoading(false);
+            }
+        }, 300);
+
         return () => clearTimeout(timer);
-    }, [query, deviceId, stockKey]);
+    }, [query]);
 
     return (
         <div className="search-box" style={{ marginBottom: 20, position: 'relative' }}>
-            <input 
-                type="text" 
-                placeholder="Search to add stocks (e.g. AAPL)..." 
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
-            />
+            <div style={{ position: 'relative' }}>
+                <input 
+                    type="text" 
+                    placeholder="Search to add stocks (e.g. AAPL)..." 
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    style={{ 
+                        width: '100%', 
+                        padding: '12px', 
+                        paddingRight: '40px',
+                        borderRadius: '8px', 
+                        border: '1px solid #ddd', 
+                        fontSize: '14px' 
+                    }}
+                />
+                {isLoading && (
+                    <div style={{ 
+                        position: 'absolute', 
+                        right: 12, 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#999',
+                        fontSize: '12px',
+                        fontStyle: 'italic',
+                        pointerEvents: 'none'
+                    }}>
+                        ...
+                    </div>
+                )}
+            </div>
+
             {query.length >= 2 && results.length > 0 && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                     {results.map((stock, i) => (
                         <div key={i} onClick={() => { onSelect(stock); setQuery(""); setResults([]); }} style={{ padding: '10px', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ fontWeight: 'bold', width: 50 }}>{stock.symbol}</div>
-                            <div style={{ flex: 1 }}>{stock.description}</div>
+                            {/* FIXED: Increased width to 90px and added flexShrink: 0 */}
+                            <div style={{ fontWeight: 'bold', width: 90, flexShrink: 0 }}>{stock.symbol}</div>
+                            {/* Added truncation styles to description */}
+                            <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stock.description}</div>
                         </div>
                     ))}                    
                 </div>
@@ -141,7 +194,6 @@ export function DeviceFinancePanel({ deviceId }: Props) {
   const [showHourly, setShowHourly] = useState(false);
   const [showDaily, setShowDaily]   = useState(false);
   const [showWeekly, setShowWeekly] = useState(false);
-  const [stockKey, setStockKey] = useState("");
 
 // -- NEW: Indices Setting --
   const [showIndices, setShowIndices] = useState(false);
@@ -175,7 +227,6 @@ export function DeviceFinancePanel({ deviceId }: Props) {
         setShowHourly(d.finance_show_hourly_change ?? false);
         setShowDaily(d.finance_show_daily_change ?? false);
         setShowWeekly(d.finance_show_weekly_change ?? false);
-        setStockKey(d.finance_stocks_apikey || "");
         // Load Indices Setting
         setShowIndices(d.show_indices ?? false);
 
@@ -197,13 +248,12 @@ export function DeviceFinancePanel({ deviceId }: Props) {
 
   // --- 2. AUTO-SAVE FUNCTION ---
   // This is called explicitly after any data modification
-  const autoSave = async (newStocks?: StockItem[], newCryptos?: CryptoItem[], newKey?: string) => {
+  const autoSave = async (newStocks?: StockItem[], newCryptos?: CryptoItem[]) => {
       setIsSaving(true);
       try {
           // Use provided data or fall back to current state
           const stocksToSave = newStocks || stockData;
           const cryptosToSave = newCryptos || cryptoData; // Note: cryptoData contains ALL, we filter selected
-          const keyToSave = newKey !== undefined ? newKey : stockKey;
 
           // A. Save Stocks
           const stockPayload = {
@@ -233,20 +283,16 @@ export function DeviceFinancePanel({ deviceId }: Props) {
                   weekly_change: showWeekly
               }))
           };
-          await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json", ...authHeaders() },
-              body: JSON.stringify(cryptoPayload),
-          });
 
-          // C. Save Globals (Only if key changed)
-          if (newKey !== undefined) {
-             await fetch(`${API_BASE}/devices/${deviceId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...authHeaders() },
-                body: JSON.stringify({ finance_stocks_apikey: keyToSave }),
-            });
-          }
+
+        // [FIXED]: Check response
+        const cRes = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(cryptoPayload),
+        });
+        if (!cRes.ok) throw new Error("Failed to save crypto");
+
 
       } catch (e) {
           console.error("Auto-save failed", e);
@@ -258,24 +304,26 @@ export function DeviceFinancePanel({ deviceId }: Props) {
 
 
 // --- NEW: Toggle Indices ---
-  const handleIndicesToggle = async (checked: boolean) => {
+const handleIndicesToggle = async (checked: boolean) => {
     setShowIndices(checked);
-    // Directly save to device endpoint (Scalar setting)
     try {
-        await fetch(`${API_BASE}/devices/${deviceId}`, {
+        // [FIXED]: Check response
+        const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ show_indices: checked }),
         });
+        if (!res.ok) throw new Error("Failed to save setting");
     } catch (e) {
         console.error(e);
         toast?.("Failed to save indices setting", "error");
     }
-  };
+};
 
   // --- 3. EVENT HANDLERS ---
 
   // Stock Add
+// Stock Add
   const handleStockAdd = async (s: any) => {
     // Optimistic Add
     const newItem: StockItem = {
@@ -289,19 +337,17 @@ export function DeviceFinancePanel({ deviceId }: Props) {
     
     const newList = [...stockData, newItem];
     setStockData(newList);
-    autoSave(newList); // Save immediately
+    autoSave(newList); 
 
-    // Fetch Logo Background
-    if (stockKey) {
-        fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${s.symbol}&token=${stockKey}`)
-            .then(r => r.json())
-            .then(profile => {
-                if (profile?.logo) {
-                    setStockData(prev => prev.map(p => p.id === newItem.id ? { ...p, logo_url: profile.logo } : p));
-                }
-            });
-    }
-  };
+    // Fetch Logo Background (Directly using constant)
+    fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${s.symbol}&token=${STOCK_API_KEY}`)
+        .then(r => r.json())
+        .then(profile => {
+            if (profile?.logo) {
+                setStockData(prev => prev.map(p => p.id === newItem.id ? { ...p, logo_url: profile.logo } : p));
+            }
+        });
+  }; // <--- Function ends here directly
 
     // Crypto Add
 // src/components/DeviceFinance.tsx
@@ -462,26 +508,7 @@ const handleCryptoAdd = async (coin: any) => {
         {activeTab === 'Stocks' && (
             <div style={{ gridColumn: '1/-1' }}>
 
-                {/* API Key Box */}
-                <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: 8, border: '1px solid #eee', marginBottom: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>Finnhub API Key</div>
-                        <div style={{ fontSize: 11, color: '#666' }}><a href="https://finnhub.io/register" target="_blank" rel="noreferrer">Get Key</a></div>
-                    </div>
-                    <input 
-                        type="text" 
-                        value={stockKey}
-                        onChange={(e) => {
-                            setStockKey(e.target.value);
-                            // Debounce or save on blur usually better, but for now specific save:
-                        }}
-                        onBlur={() => autoSave(undefined, undefined, stockKey)}
-                        placeholder="Required for Stocks..."
-                        style={{ marginTop: 5, padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontFamily: 'monospace', width: '100%' }}
-                    />
-                </div>
-
-                <StockSearch deviceId={deviceId} stockKey={stockKey} onSelect={handleStockAdd} />
+                <StockSearch deviceId={deviceId} onSelect={handleStockAdd} />
                 
                 <h4 style={{marginBottom: 10, fontSize: 14, textTransform: 'uppercase', color: '#888', letterSpacing: 0.5 }}>
                     Selected Stocks ({stockData.length})
