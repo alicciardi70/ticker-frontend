@@ -13,7 +13,7 @@ function authHeaders() {
 
 const TABS = ["Stocks", "Crypto", "Indices", "Economic"] as const;
 
-// Reusable Dark Mode Styles (similar to Weather panel)
+// Reusable Dark Mode Styles
 const styles = {
     card: {
         background: '#111',
@@ -21,6 +21,7 @@ const styles = {
         borderRadius: '12px',
         border: '1px solid #333'
     },
+    // Base row style
     row: {
         background: '#111',
         border: '1px solid #333',
@@ -30,14 +31,15 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         cursor: 'move',
-        color: '#fff'
+        color: '#fff',
+        transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)' // Smooth animation for the gap
     },
     logoWrapper: {
         marginRight: 12,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#000', // Dark background for logos
+        background: '#000',
         borderRadius: '50%',
         width: 32,
         height: 32,
@@ -91,15 +93,13 @@ const getIconSrc = (url: string | null | undefined) => {
     return `/${url}`;
 };
 
-// --- HELPER: Grip Icon for Dragging ---
 const GripIcon = () => (
     <svg width="12" height="16" viewBox="0 0 6 10" fill="#666" style={{ cursor: 'grab', marginRight: 12 }}>
         <path d="M0 0h2v2H0V0zm4 0h2v2H4V0zM0 4h2v2H0V4zm4 0h2v2H4V4zM0 8h2v2H0V8zm4 0h2v2H4V8z"/>
     </svg>
 );
 
-// --- SEARCH COMPONENTS ---
-
+// --- SEARCH COMPONENTS (Unchanged) ---
 function CryptoSearch({ onSelect }: { onSelect: (coin: any) => void }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<any[]>([]);
@@ -156,29 +156,17 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
             setIsLoading(false); 
             return; 
         }
-
         setIsLoading(true);
-
         const timer = setTimeout(async () => {
             try {
                 const res = await fetch(`https://finnhub.io/api/v1/search?q=${query}&token=${STOCK_API_KEY}`);
-                
-                if (res.status === 400) { 
-                    toast?.("API Configuration Error", "error"); 
-                    return; 
-                }
-                
+                if (res.status === 400) { toast?.("API Configuration Error", "error"); return; }
                 if (res.ok) { 
                     const data = await res.json(); 
                     setResults(data.result || []);
                 }
-            } catch (e) { 
-                console.error(e); 
-            } finally {
-                setIsLoading(false);
-            }
+            } catch (e) { console.error(e); } finally { setIsLoading(false); }
         }, 300);
-
         return () => clearTimeout(timer);
     }, [query]);
 
@@ -192,16 +180,8 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
                     onChange={e => setQuery(e.target.value)}
                     style={{ ...styles.input, paddingRight: '40px' }}
                 />
-                {isLoading && (
-                    <div style={{ 
-                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                        color: '#666', fontSize: '12px', fontStyle: 'italic', pointerEvents: 'none'
-                    }}>
-                        ...
-                    </div>
-                )}
+                {isLoading && <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#666', fontSize: '12px', fontStyle: 'italic', pointerEvents: 'none' }}>...</div>}
             </div>
-
             {query.length >= 2 && results.length > 0 && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: '0 0 8px 8px', zIndex: 100, maxHeight: '300px', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
                     {results.map((stock, i) => (
@@ -216,7 +196,6 @@ function StockSearch({ deviceId, onSelect }: { deviceId: string, onSelect: (stoc
         </div>
     );
 }
-
 
 export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
   const { toast } = useToast();
@@ -237,9 +216,11 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
   // Tab State
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("Stocks");
 
-  // Drag & Drop Refs
+  // Drag & Drop State (UPDATED for visual feedback)
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null); // For ghost effect
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null); // For gap effect
 
   // --- 1. LOAD DATA ---
   const loadData = useCallback(async () => {
@@ -259,10 +240,8 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
         setShowWeekly(d.finance_show_weekly_change ?? false);
         setShowIndices(d.show_indices ?? false);
       }
-      
       if (cRes.ok) setCryptoData(await cRes.json());
       if (sRes.ok) setStockData(await sRes.json());
-
     } catch (e: any) {
       console.error(e);
       toast?.("Failed to load data", "error");
@@ -273,7 +252,6 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-
   // --- 2. AUTO-SAVE FUNCTION ---
   const autoSave = async (newStocks?: StockItem[], newCryptos?: CryptoItem[]) => {
       setIsSaving(true);
@@ -281,7 +259,7 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
           const stocksToSave = newStocks || stockData;
           const cryptosToSave = newCryptos || cryptoData; 
 
-          // A. Save Stocks
+          // Save Stocks
           const stockPayload = {
               items: stocksToSave.map((item, i) => ({
                   stock_ticker: item.stock_ticker,
@@ -296,7 +274,7 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
               body: JSON.stringify(stockPayload),
           });
 
-          // B. Save Crypto
+          // Save Crypto
           const selectedCryptos = cryptosToSave.filter(c => c.selected).sort((a,b) => a.order - b.order);
           const cryptoPayload = {
               items: selectedCryptos.map((item, i) => ({
@@ -309,13 +287,12 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
                   weekly_change: showWeekly
               }))
           };
-
-        const cRes = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify(cryptoPayload),
-        });
-        if (!cRes.ok) throw new Error("Failed to save crypto");
+          const cRes = await fetch(`${API_BASE}/devices/${deviceId}/crypto`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", ...authHeaders() },
+              body: JSON.stringify(cryptoPayload),
+          });
+          if (!cRes.ok) throw new Error("Failed to save crypto");
 
       } catch (e) {
           console.error("Auto-save failed", e);
@@ -328,16 +305,12 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
   const handleIndicesToggle = async (checked: boolean) => {
     setShowIndices(checked);
     try {
-        const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+        await fetch(`${API_BASE}/devices/${deviceId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ show_indices: checked }),
         });
-        if (!res.ok) throw new Error("Failed to save setting");
-    } catch (e) {
-        console.error(e);
-        toast?.("Failed to save indices setting", "error");
-    }
+    } catch (e) { console.error(e); }
   };
 
   // --- 3. EVENT HANDLERS ---
@@ -350,7 +323,6 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
         color: 'white',
         logo_url: undefined
     };
-    
     const newList = [...stockData, newItem];
     setStockData(newList);
     autoSave(newList); 
@@ -377,13 +349,11 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
                 currency: targetCurrency 
             })
         });
-        
         if (!res.ok) {
             const err = await res.json();
             toast?.(err.detail || "Failed to add coin. Check currency support.", "error");
             return;
         }
-        
         const validatedCoin = await res.json();
         
         const newItem: CryptoItem = {
@@ -393,20 +363,16 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
             currency: targetCurrency, 
             description: validatedCoin.description,
             selected: true,
-            order: cryptoData.filter(c => c.selected).length + 1
+            order: cryptoData.filter(c => c.selected).length + 1,
+            image_url: validatedCoin.image_url || validatedCoin.device_icon_path || coin.thumb 
         };
 
         const newList = [...cryptoData, newItem];
         setCryptoData(newList);
         await autoSave(undefined, newList); 
         toast?.(`Added ${validatedCoin.code.toUpperCase()} (${targetCurrency.toUpperCase()})`);
-
-    } catch(e) {
-        console.error(e);
-        toast?.("Critical Error adding coin", "error");
-    }
+    } catch(e) { console.error(e); toast?.("Critical Error adding coin", "error"); }
   };
-
 
   const removeStock = (id: string) => {
       const newList = stockData.filter(s => s.id !== id);
@@ -416,15 +382,13 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
   
   const removeCrypto = (id: string) => {
       setCryptoData(prev => {
-          // Remove by deselecting
           const newList = prev.map(p => p.id === id ? { ...p, selected: false, order: 0 } : p);
           autoSave(undefined, newList);
           return newList;
       });
   };
 
-
-  // --- 4. DRAG AND DROP LOGIC ---
+  // --- 4. DRAG AND DROP LOGIC (UPDATED) ---
   const handleSort = () => {
       const listCopy = activeTab === 'Stocks' ? [...stockData] : [...cryptoData];
       
@@ -453,23 +417,22 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
               ...c,
               order: newOrderMap.has(c.id) ? newOrderMap.get(c.id) : c.order
           }));
-          
           setCryptoData(merged);
           autoSave(undefined, merged);
       }
       
+      // Reset Refs & State
       dragItem.current = null;
       dragOverItem.current = null;
+      setDraggingIdx(null);
+      setDragOverIdx(null);
   };
 
-
   if (loading) return <div style={{color: '#666'}}>Loading finance...</div>;
-
   const selectedCryptos = cryptoData.filter(c => c.selected).sort((a,b) => a.order - b.order);
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
-       
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
            <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0, color: '#fff' }}>Finance Settings</h3>
            {isSaving && <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>Saving changes...</div>}
@@ -488,9 +451,7 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
                             padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontWeight: 600,
                             marginRight: 8
                         }}
-                    >
-                        {tab}
-                    </button>
+                    >{tab}</button>
                 ))}
             </div>
        </div>
@@ -498,51 +459,57 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
         {/* --- STOCKS TAB --- */}
         {activeTab === 'Stocks' && (
             <div style={{ gridColumn: '1/-1' }}>
-
                 <StockSearch deviceId={deviceId} onSelect={handleStockAdd} />
-                
-                <h4 style={styles.sectionTitle}>
-                    Selected Stocks ({stockData.length})
-                </h4>
-
+                <h4 style={styles.sectionTitle}>Selected Stocks ({stockData.length})</h4>
                 <div className="list">
-                    {stockData.map((item, idx) => (
-                        <div 
-                            key={item.id} 
-                            draggable
-                            onDragStart={() => (dragItem.current = idx)}
-                            onDragEnter={() => (dragOverItem.current = idx)}
-                            onDragEnd={handleSort}
-                            onDragOver={(e) => e.preventDefault()}
-                            style={styles.row}
-                        >
-                            <GripIcon />
-                            
-                            <div style={styles.logoWrapper}>
-                                {item.logo_url ? (
-                                    <img src={item.logo_url} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                ) : (
-                                    <span style={{ fontSize: 16 }}>📈</span>
-                                )}
+                    {stockData.map((item, idx) => {
+                        // --- DYNAMIC STYLING FOR DND ---
+                        const isDragging = draggingIdx === idx;
+                        const isDragOver = dragOverIdx === idx && !isDragging;
+                        return (
+                            <div 
+                                key={item.id} 
+                                draggable
+                                onDragStart={() => {
+                                    dragItem.current = idx;
+                                    setDraggingIdx(idx); // Trigger dimmed state
+                                }}
+                                onDragEnter={() => {
+                                    dragOverItem.current = idx;
+                                    setDragOverIdx(idx); // Trigger gap state
+                                }}
+                                onDragEnd={handleSort}
+                                onDragOver={(e) => e.preventDefault()}
+                                style={{
+                                    ...styles.row,
+                                    // Visual Feedback:
+                                    opacity: isDragging ? 0.3 : 1, // Dim if dragging
+                                    marginTop: isDragOver ? '30px' : '0', // Create gap if hovering
+                                    borderTop: isDragOver ? '2px solid #00ff41' : '1px solid #333', // Neon line
+                                    transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
+                                }}
+                            >
+                                <GripIcon />
+                                <div style={styles.logoWrapper}>
+                                    {item.logo_url ? <img src={item.logo_url} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 16 }}>📈</span>}
+                                </div>
+                                <div style={{flex: 1}}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#fff' }}>{item.stock_ticker}</div>
+                                    <input 
+                                        placeholder="Display Name" 
+                                        value={item.display_text || ""} 
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setStockData(prev => prev.map(p => p.id === item.id ? {...p, display_text: val} : p));
+                                        }}
+                                        onBlur={() => autoSave()}
+                                        style={{ padding: '2px 0', fontSize: '12px', color: '#888', width: '100%', border: 'none', background: 'transparent', outline: 'none' }}
+                                    />
+                                </div>
+                                <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={() => removeStock(item.id)}>✕</button>
                             </div>
-
-                            <div style={{flex: 1}}>
-                                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#fff' }}>{item.stock_ticker}</div>
-                                <input 
-                                    placeholder="Display Name" 
-                                    value={item.display_text || ""} 
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setStockData(prev => prev.map(p => p.id === item.id ? {...p, display_text: val} : p));
-                                    }}
-                                    onBlur={() => autoSave()}
-                                    style={{ padding: '2px 0', fontSize: '12px', color: '#888', width: '100%', border: 'none', background: 'transparent', outline: 'none' }}
-                                />
-                            </div>
-
-                            <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={() => removeStock(item.id)}>✕</button>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {stockData.length === 0 && <div style={{color: '#666', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No stocks added.</div>}
                 </div>
             </div>
@@ -551,97 +518,78 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
         {/* --- CRYPTO TAB --- */}
         {activeTab === 'Crypto' && (
             <div style={{ gridColumn: '1/-1' }}>
-                
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                    <div style={{ flex: 1 }}>
-                        <CryptoSearch onSelect={handleCryptoAdd} />
-                    </div>
-                    
-                    <select 
-                        value={targetCurrency} 
-                        onChange={(e) => setTargetCurrency(e.target.value)}
-                        style={{ 
-                            ...styles.input,
-                            width: 'auto',
-                            minWidth: '80px',
-                            cursor: 'pointer',
-                            height: '45px'
-                        }}
-                    >
+                    <div style={{ flex: 1 }}><CryptoSearch onSelect={handleCryptoAdd} /></div>
+                    <select value={targetCurrency} onChange={(e) => setTargetCurrency(e.target.value)} style={{ ...styles.input, width: 'auto', minWidth: '80px', cursor: 'pointer', height: '45px' }}>
                         <option value="usd">USD ($)</option>
                         <option value="eur">EUR (€)</option>
                         <option value="gbp">GBP (£)</option>
                         <option value="jpy">JPY (¥)</option>
                     </select>
                 </div>
-
-                <h4 style={styles.sectionTitle}>
-                    Selected Cryptos ({selectedCryptos.length})
-                </h4>
-
+                <h4 style={styles.sectionTitle}>Selected Cryptos ({selectedCryptos.length})</h4>
                 <div className="list">
-                    {selectedCryptos.map((item, idx) => (
-                        <div 
-                            key={item.id} 
-                            draggable
-                            onDragStart={() => (dragItem.current = idx)}
-                            onDragEnter={() => (dragOverItem.current = idx)}
-                            onDragEnd={handleSort}
-                            onDragOver={(e) => e.preventDefault()}
-                            style={styles.row}
-                        >
-                            <GripIcon />
-                            
-                            <div style={styles.logoWrapper}>
-                                {item.image_url ? (
-                                    <img src={getIconSrc(item.image_url)} alt={item.code} style={{width:24, height:24, borderRadius:'50%'}} />
-                                ) : (
-                                    <span style={{ fontSize: 20 }}>🪙</span>
-                                )}
+                    {selectedCryptos.map((item, idx) => {
+                        // --- DYNAMIC STYLING FOR DND ---
+                        const isDragging = draggingIdx === idx;
+                        const isDragOver = dragOverIdx === idx && !isDragging;
+                        return (
+                            <div 
+                                key={item.id} 
+                                draggable
+                                onDragStart={() => {
+                                    dragItem.current = idx;
+                                    setDraggingIdx(idx);
+                                }}
+                                onDragEnter={() => {
+                                    dragOverItem.current = idx;
+                                    setDragOverIdx(idx);
+                                }}
+                                onDragEnd={handleSort}
+                                onDragOver={(e) => e.preventDefault()}
+                                style={{
+                                    ...styles.row,
+                                    // Visual Feedback:
+                                    opacity: isDragging ? 0.3 : 1,
+                                    marginTop: isDragOver ? '30px' : '0',
+                                    borderTop: isDragOver ? '2px solid #00ff41' : '1px solid #333',
+                                    transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
+                                }}
+                            >
+                                <GripIcon />
+                                <div style={styles.logoWrapper}>
+                                    {item.image_url ? <img src={getIconSrc(item.image_url)} alt={item.code} style={{width:24, height:24, borderRadius:'50%'}} /> : <span style={{ fontSize: 20 }}>🪙</span>}
+                                </div>
+                                <div style={{flex:1}}>
+                                    <div style={{fontWeight: 'bold', color: '#fff'}}>{item.description}</div>
+                                    <div style={{ fontSize: 11, color: '#666' }}>{item.pair.toUpperCase()}</div>
+                                </div>                            
+                                <div style={{ background: '#222', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, marginRight: 8, color: '#ccc', border: '1px solid #333' }}>
+                                    {item.code.toUpperCase()}
+                                </div>
+                                <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={()=>removeCrypto(item.id)}>✕</button>
                             </div>
-                            <div style={{flex:1}}>
-                                <div style={{fontWeight: 'bold', color: '#fff'}}>{item.description}</div>
-                                <div style={{ fontSize: 11, color: '#666' }}>{item.pair.toUpperCase()}</div>
-                            </div>                            
-                            <div style={{ background: '#222', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, marginRight: 8, color: '#ccc', border: '1px solid #333' }}>
-                                {item.code.toUpperCase()}
-                            </div>
-
-                            <button style={{background:'transparent', border:'none', color:'#ef4444', cursor:'pointer'}} onClick={()=>removeCrypto(item.id)}>✕</button>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {selectedCryptos.length === 0 && <div style={{color: '#666', fontStyle: 'italic', padding: 20, textAlign: 'center'}}>No crypto selected.</div>}
                 </div>
             </div>
         )}
 
-        {/* --- INDICES TAB --- */}
+        {/* --- INDICES TAB (Unchanged) --- */}
         {activeTab === 'Indices' && (
             <div style={styles.card}>
                 <h4 style={styles.sectionTitle}>Market Indices</h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     <label style={{ fontWeight: 600, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
-                        <input 
-                            type="checkbox" 
-                            checked={showIndices} 
-                            onChange={(e) => handleIndicesToggle(e.target.checked)} 
-                            style={{ width: 18, height: 18, cursor: "pointer", accentColor: '#00ff41' }}
-                        />
+                        <input type="checkbox" checked={showIndices} onChange={(e) => handleIndicesToggle(e.target.checked)} style={{ width: 18, height: 18, cursor: "pointer", accentColor: '#00ff41' }} />
                         <span style={{ fontSize: 15 }}>Show Major Indices (Dow, S&P 500)</span>
                     </label>
-                    <div style={{ fontSize: 12, color: '#888', marginLeft: 28 }}>
-                        Displays the current value and daily change for major US market indices.
-                    </div>
+                    <div style={{ fontSize: 12, color: '#888', marginLeft: 28 }}>Displays the current value and daily change for major US market indices.</div>
                 </div>
             </div>
         )}
-
-        {/* --- OTHER TABS --- */}
-        { activeTab === 'Economic' && (
-             <div style={{ padding: 40, color: '#666', textAlign: 'center' }}>
-                Coming Soon
-            </div>
-        )}
+        { activeTab === 'Economic' && <div style={{ padding: 40, color: '#666', textAlign: 'center' }}>Coming Soon</div>}
     </div>
   );
 }

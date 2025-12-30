@@ -9,6 +9,82 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// --- Dark Mode Styles ---
+const styles = {
+    panel: {
+        background: '#111',
+        border: '1px solid #333',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '20px'
+    },
+    // Grid Card Style
+    card: {
+        background: '#111',
+        border: '1px solid #333',
+        borderRadius: '12px',
+        padding: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        color: '#fff'
+    },
+    cardActive: {
+        borderColor: '#00ff41',
+        background: 'rgba(0, 255, 65, 0.05)',
+        boxShadow: '0 0 15px rgba(0, 255, 65, 0.1)'
+    },
+    // Sidebar Row Style
+    row: {
+        background: '#111',
+        border: '1px solid #333',
+        padding: '10px 12px',
+        borderRadius: '8px',
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        cursor: 'move',
+        color: '#fff',
+        transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)'
+    },
+    sectionTitle: {
+        fontSize: "14px", 
+        fontWeight: "700", 
+        color: "#888", 
+        textTransform: "uppercase" as const, 
+        letterSpacing: "0.05em",
+        marginBottom: "12px"
+    },
+    logoWrapper: {
+        width: 32, height: 32,
+        borderRadius: 6,
+        background: '#000',
+        display: 'grid',
+        placeItems: 'center',
+        border: '1px solid #333',
+        marginRight: 12
+    },
+    pill: {
+        background: '#111',
+        border: '1px solid #333',
+        color: '#888',
+        padding: '6px 16px',
+        borderRadius: '20px',
+        cursor: 'pointer',
+        fontWeight: 600,
+        fontSize: '13px',
+        transition: 'all 0.2s'
+    },
+    pillActive: {
+        background: '#00ff41',
+        color: '#000',
+        borderColor: '#00ff41',
+        boxShadow: '0 0 10px rgba(0, 255, 65, 0.3)'
+    }
+};
+
 type Team = {
   id: string;
   league_id: string;
@@ -25,9 +101,8 @@ type SelectedTeam = {
 const LEAGUES = ["MLB", "NFL", "NBA", "NHL", "MLS", "EPL"] as const;
 const emoji: Record<string, string> = { MLB: "⚾", NFL: "🏈", NBA: "🏀", NHL: "🏒", MLS: "⚽", EPL: "⚽" };
 
-// --- HELPER: Grip Icon for Dragging ---
 const GripIcon = () => (
-    <svg width="12" height="16" viewBox="0 0 6 10" fill="#ccc" style={{ cursor: 'grab', marginRight: 8 }}>
+    <svg width="12" height="16" viewBox="0 0 6 10" fill="#666" style={{ cursor: 'grab', marginRight: 12 }}>
         <path d="M0 0h2v2H0V0zm4 0h2v2H4V0zM0 4h2v2H0V4zm4 0h2v2H4V4zM0 8h2v2H0V8zm4 0h2v2H4V8z"/>
     </svg>
 );
@@ -51,9 +126,11 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   // Global Sports Settings
   const [showUpcoming, setShowUpcoming] = useState(true);
 
-  // Drag Refs
+  // Drag & Drop State (Updated for visual feedback)
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -113,19 +190,18 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   const autoSave = async (newSelected?: SelectedTeam[], newUpcoming?: boolean) => {
       setSaving(true);
       try {
-          // Use provided values or fallback to current state
           const itemsToSave = newSelected !== undefined ? newSelected : selected;
           const upcomingToSave = newUpcoming !== undefined ? newUpcoming : showUpcoming;
 
-//   1. Save Globals (if changed)
-        if (newUpcoming !== undefined) {
-          const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json", ...authHeaders() },
-              body: JSON.stringify({ sports_show_next_upcoming_games: upcomingToSave }),
-          });
-          if (!res.ok) throw new Error("Failed to save global settings"); // [FIXED]
-        }
+          // 1. Save Globals (if changed)
+          if (newUpcoming !== undefined) {
+            const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", ...authHeaders() },
+                body: JSON.stringify({ sports_show_next_upcoming_games: upcomingToSave }),
+            });
+            if (!res.ok) throw new Error("Failed to save global settings"); 
+          }
 
           // 2. Save Teams (if changed)
           if (newSelected !== undefined) {
@@ -140,7 +216,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
               headers: { "Content-Type": "application/json", ...authHeaders() },
               body: JSON.stringify(teamsPayload),
           });
-          if (!res.ok) throw new Error("Failed to save teams"); // [FIXED]
+          if (!res.ok) throw new Error("Failed to save teams"); 
           }
       } catch (e: any) {
           console.error("Auto-save failed", e);
@@ -175,7 +251,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
   const remove = (id: string) => toggleTeam(id);
 
-  // Drag & Drop Sort
+  // Drag & Drop Sort (Updated with state reset)
   const handleSort = () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
     if (dragItem.current === dragOverItem.current) return;
@@ -191,6 +267,8 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
     dragItem.current = null;
     dragOverItem.current = null;
+    setDraggingIdx(null); // Reset visual state
+    setDragOverIdx(null); // Reset visual state
 
     setSelected(reordered);
     autoSave(reordered);
@@ -213,81 +291,152 @@ export function DeviceSportsPanel({ deviceId }: Props) {
   const isSelected = (id: string) => selected.some((s) => s.team_id === id);
 
 
-  if (loading) return <div className="dv-muted">Loading sports...</div>;
+  if (loading) return <div style={{color: '#666'}}>Loading sports...</div>;
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
        
        {/* HEADER */}
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Sports Settings</h3>
+           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0, color: '#fff' }}>Sports Settings</h3>
            {saving && <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>Saving changes...</div>}
        </div>
 
        {err && <div className="dv-alert" style={{ marginBottom: 12 }}>{err}</div>}
        
        {/* Global Settings Box */}
-       <div className="config-panel" style={{ marginBottom: 20 }}>
-            <div className="panel-row">
-              <label className="checkbox-label" style={{ cursor: 'pointer' }}>
-                <input type="checkbox" checked={showUpcoming} onChange={e => handleGlobalToggle(e.target.checked)} />
+       <div style={styles.panel}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 500, cursor: 'pointer', color: '#fff' }}>
+                <input 
+                    type="checkbox" 
+                    checked={showUpcoming} 
+                    onChange={e => handleGlobalToggle(e.target.checked)} 
+                    style={{ width: '18px', height: '18px', accentColor: '#00ff41', cursor: 'pointer' }}
+                />
                 Show Upcoming Games
-              </label>
-            </div>
+            </label>
         </div>
 
         {/* Filter Pills */}
-        <div className="toolbar">
-            <div className="pills">
-                {LEAGUES.map(L => <button key={L} className={`pill ${league === L ? 'active':''}`} onClick={()=>setLeague(L)}>{L}</button>)}
-            </div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            {LEAGUES.map(L => (
+                <button 
+                    key={L} 
+                    style={league === L ? styles.pillActive : styles.pill}
+                    onClick={()=>setLeague(L)}
+                >
+                    {L}
+                </button>
+            ))}
         </div>
 
-        <div className="main">
-            {/* Grid of Teams */}
-            <div className="grid">
-                {filtered.map(t => (
-                    <div key={t.id} className="card">
-                        <div className="logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="logo" /> : emoji[t.league_id]}</div>
-                        <div style={{flex:1, minWidth:0}}>
-                            <div className="title">{t.market} {t.name}</div>
-                            <div className="meta">{t.league_id}</div>
+        <div className="main" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            
+            {/* 1. Grid of Teams (Available) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px', alignContent: 'start' }}>
+                {filtered.map(t => {
+                    const active = isSelected(t.id);
+                    return (
+                        <div 
+                            key={t.id} 
+                            onClick={()=>toggleTeam(t.id)}
+                            style={{
+                                ...styles.card,
+                                ...(active ? styles.cardActive : {})
+                            }}
+                        >
+                            <div style={{
+                                width: 32, height: 32, borderRadius: 6, background: '#000', 
+                                display: 'grid', placeItems: 'center', border: '1px solid #333'
+                            }}>
+                                {t.icon_path ? <img src={`/${t.icon_path}`} style={{width:'100%', height:'100%', objectFit:'contain'}} /> : emoji[t.league_id]}
+                            </div>
+                            
+                            <div style={{flex:1, minWidth:0}}>
+                                <div style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {t.market} {t.name}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#666' }}>{t.league_id}</div>
+                            </div>
                         </div>
-                        <div className={`switch ${isSelected(t.id) ? 'on':''}`} onClick={()=>toggleTeam(t.id)} />
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Selected List Sidebar */}
-            <aside className="aside">
-                <div className="aside-h">
-                    <strong>Selected Teams ({selected.length})</strong>
+            {/* 2. Selected List Sidebar */}
+            <aside style={{ 
+                background: '#111', 
+                border: '1px solid #333', 
+                borderRadius: '12px', 
+                padding: '16px',
+                height: 'fit-content'
+            }}>
+                <div style={{ 
+                    marginBottom: '16px', borderBottom: '1px solid #333', paddingBottom: '8px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                    <strong style={{ color: '#fff', fontSize: '14px' }}>Selected Teams ({selected.length})</strong>
                 </div>
-                {selected.length === 0 && <div style={{ padding: 16, color: '#999', fontStyle: 'italic' }}>No teams selected.</div>}
+
+                {selected.length === 0 && (
+                    <div style={{ padding: '20px 0', color: '#666', fontStyle: 'italic', textAlign: 'center', fontSize: '14px' }}>
+                        No teams selected. <br/> Click teams on the left to add them.
+                    </div>
+                )}
                 
                 <div className="list">
                     {selected.map((s, idx) => {
                         const t = byId.get(s.team_id);
                         if(!t) return null;
+
+                        // --- DYNAMIC STYLING FOR DND ---
+                        const isDragging = draggingIdx === idx;
+                        const isDragOver = dragOverIdx === idx && !isDragging;
+
                         return (
                             <div 
                                 key={s.team_id} 
-                                className="row"
                                 draggable
-                                onDragStart={() => (dragItem.current = idx)}
-                                onDragEnter={() => (dragOverItem.current = idx)}
+                                onDragStart={() => {
+                                    dragItem.current = idx;
+                                    setDraggingIdx(idx); // Start visual drag
+                                }}
+                                onDragEnter={() => {
+                                    dragOverItem.current = idx;
+                                    setDragOverIdx(idx); // Create gap
+                                }}
                                 onDragEnd={handleSort}
                                 onDragOver={(e) => e.preventDefault()}
-                                style={{ cursor: 'move', background: 'white', border:'1px solid #eee', padding: '8px', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center'}}
+                                style={{
+                                    ...styles.row,
+                                    // Apply dynamic styles
+                                    opacity: isDragging ? 0.3 : 1,
+                                    marginTop: isDragOver ? '30px' : '0',
+                                    borderTop: isDragOver ? '2px solid #00ff41' : '1px solid #333',
+                                    transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
+                                }}
                             >
                                 <GripIcon />
                                 
-                                <div className="small-logo">{t.icon_path ? <img src={`/${t.icon_path}`} className="small-logo"/> : emoji[t.league_id]}</div>
-                                <div style={{flex:1}}>
-                                    <div className="row-title">{t.market} {t.name}</div>
-                                    <div style={{ fontSize: 11, color: '#888' }}>{t.league_id}</div>
+                                <div style={styles.logoWrapper}>
+                                    {t.icon_path ? (
+                                        <img src={`/${t.icon_path}`} style={{width:'100%', height:'100%', objectFit:'contain'}}/>
+                                    ) : (
+                                        emoji[t.league_id]
+                                    )}
                                 </div>
-                                <button className="icon-btn danger" onClick={()=>remove(s.team_id)}>✕</button>
+                                
+                                <div style={{flex:1}}>
+                                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{t.market} {t.name}</div>
+                                    <div style={{ fontSize: '11px', color: '#666' }}>{t.league_id}</div>
+                                </div>
+                                
+                                <button 
+                                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }} 
+                                    onClick={()=>remove(s.team_id)}
+                                >
+                                    ✕
+                                </button>
                             </div>
                         );
                     })}
