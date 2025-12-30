@@ -45,7 +45,7 @@ const styles = {
         marginBottom: '8px',
         display: 'flex',
         alignItems: 'center',
-        cursor: 'move',
+        cursor: 'grab',
         color: '#fff',
         transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)'
     },
@@ -251,27 +251,36 @@ export function DeviceSportsPanel({ deviceId }: Props) {
 
   const remove = (id: string) => toggleTeam(id);
 
-  // Drag & Drop Sort (Updated with state reset)
+
+// Drag & Drop Sort (FIXED)
   const handleSort = () => {
-    if (dragItem.current === null || dragOverItem.current === null) return;
-    if (dragItem.current === dragOverItem.current) return;
+    // 1. Guard: Check validity
+    if (dragItem.current === null || dragOverItem.current === null) {
+        setDraggingIdx(null);
+        setDragOverIdx(null);
+        return;
+    }
 
-    const listCopy = [...selected];
-    const draggedItemContent = listCopy[dragItem.current];
-    
-    listCopy.splice(dragItem.current, 1);
-    listCopy.splice(dragOverItem.current, 0, draggedItemContent);
-    
-    // Reset Display Orders
-    const reordered = listCopy.map((item, index) => ({ ...item, display_order: index + 1 }));
+    // 2. Only sort if positions are different
+    if (dragItem.current !== dragOverItem.current) {
+        const listCopy = [...selected];
+        const draggedItemContent = listCopy[dragItem.current];
+        
+        listCopy.splice(dragItem.current, 1);
+        listCopy.splice(dragOverItem.current, 0, draggedItemContent);
+        
+        // Reset Display Orders
+        const reordered = listCopy.map((item, index) => ({ ...item, display_order: index + 1 }));
+        
+        setSelected(reordered);
+        autoSave(reordered);
+    }
 
+    // 3. ALWAYS Reset State (This fixes the stuck dimming)
     dragItem.current = null;
     dragOverItem.current = null;
-    setDraggingIdx(null); // Reset visual state
-    setDragOverIdx(null); // Reset visual state
-
-    setSelected(reordered);
-    autoSave(reordered);
+    setDraggingIdx(null); 
+    setDragOverIdx(null); 
   };
 
 
@@ -384,7 +393,7 @@ export function DeviceSportsPanel({ deviceId }: Props) {
                     </div>
                 )}
                 
-                <div className="list">
+                <div className="list" onDragOver={(e) => e.preventDefault()}>
                     {selected.map((s, idx) => {
                         const t = byId.get(s.team_id);
                         if(!t) return null;

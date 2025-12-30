@@ -30,7 +30,7 @@ const styles = {
         marginBottom: '8px',
         display: 'flex',
         alignItems: 'center',
-        cursor: 'move',
+        cursor: 'grab',
         color: '#fff',
         transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)' // Smooth animation for the gap
     },
@@ -388,40 +388,47 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
       });
   };
 
-  // --- 4. DRAG AND DROP LOGIC (UPDATED) ---
+// --- 4. DRAG AND DROP LOGIC (FIXED) ---
   const handleSort = () => {
-      const listCopy = activeTab === 'Stocks' ? [...stockData] : [...cryptoData];
-      
-      if (dragItem.current === null || dragOverItem.current === null) return;
-      if (dragItem.current === dragOverItem.current) return;
+      // 1. Guard: Check validity
+      if (dragItem.current === null || dragOverItem.current === null) {
+          setDraggingIdx(null);
+          setDragOverIdx(null);
+          return;
+      }
 
-      if (activeTab === 'Stocks') {
-          const draggedItemContent = listCopy[dragItem.current];
-          listCopy.splice(dragItem.current, 1);
-          listCopy.splice(dragOverItem.current, 0, draggedItemContent);
+      // 2. Only sort if positions are different
+      if (dragItem.current !== dragOverItem.current) {
+          const listCopy = activeTab === 'Stocks' ? [...stockData] : [...cryptoData];
           
-          const reordered = listCopy.map((item: any, index) => ({ ...item, display_order: index + 1 }));
-          setStockData(reordered);
-          autoSave(reordered as StockItem[]);
-      } 
-      else if (activeTab === 'Crypto') {
-          const selected = cryptoData.filter(c => c.selected).sort((a,b) => a.order - b.order);
-          const draggedItemContent = selected[dragItem.current];
-          selected.splice(dragItem.current, 1);
-          selected.splice(dragOverItem.current, 0, draggedItemContent);
-
-          const newOrderMap = new Map();
-          selected.forEach((item, idx) => newOrderMap.set(item.id, idx + 1));
-
-          const merged = cryptoData.map(c => ({
-              ...c,
-              order: newOrderMap.has(c.id) ? newOrderMap.get(c.id) : c.order
-          }));
-          setCryptoData(merged);
-          autoSave(undefined, merged);
+          if (activeTab === 'Stocks') {
+              const draggedItemContent = listCopy[dragItem.current];
+              listCopy.splice(dragItem.current, 1);
+              listCopy.splice(dragOverItem.current, 0, draggedItemContent);
+              
+              const reordered = listCopy.map((item: any, index) => ({ ...item, display_order: index + 1 }));
+              setStockData(reordered);
+              autoSave(reordered as StockItem[]);
+          } 
+          else if (activeTab === 'Crypto') {
+              const selected = cryptoData.filter(c => c.selected).sort((a,b) => a.order - b.order);
+              const draggedItemContent = selected[dragItem.current];
+              selected.splice(dragItem.current, 1);
+              selected.splice(dragOverItem.current, 0, draggedItemContent);
+    
+              const newOrderMap = new Map();
+              selected.forEach((item, idx) => newOrderMap.set(item.id, idx + 1));
+    
+              const merged = cryptoData.map(c => ({
+                  ...c,
+                  order: newOrderMap.has(c.id) ? newOrderMap.get(c.id) : c.order
+              }));
+              setCryptoData(merged);
+              autoSave(undefined, merged);
+          }
       }
       
-      // Reset Refs & State
+      // 3. ALWAYS Reset State (This fixes the stuck dimming)
       dragItem.current = null;
       dragOverItem.current = null;
       setDraggingIdx(null);
@@ -461,7 +468,7 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
             <div style={{ gridColumn: '1/-1' }}>
                 <StockSearch deviceId={deviceId} onSelect={handleStockAdd} />
                 <h4 style={styles.sectionTitle}>Selected Stocks ({stockData.length})</h4>
-                <div className="list">
+                <div className="list" onDragOver={(e) => e.preventDefault()}>
                     {stockData.map((item, idx) => {
                         // --- DYNAMIC STYLING FOR DND ---
                         const isDragging = draggingIdx === idx;
@@ -479,7 +486,10 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
                                     setDragOverIdx(idx); // Trigger gap state
                                 }}
                                 onDragEnd={handleSort}
+
                                 onDragOver={(e) => e.preventDefault()}
+
+
                                 style={{
                                     ...styles.row,
                                     // Visual Feedback:
@@ -528,7 +538,7 @@ export function DeviceFinancePanel({ deviceId }: { deviceId: string }) {
                     </select>
                 </div>
                 <h4 style={styles.sectionTitle}>Selected Cryptos ({selectedCryptos.length})</h4>
-                <div className="list">
+                <div className="list" onDragOver={(e) => e.preventDefault()}>
                     {selectedCryptos.map((item, idx) => {
                         // --- DYNAMIC STYLING FOR DND ---
                         const isDragging = draggingIdx === idx;
