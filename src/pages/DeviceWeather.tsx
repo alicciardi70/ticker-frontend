@@ -220,7 +220,7 @@ export function DeviceWeatherPanel({ deviceId }: Props) {
                 {isEditing ? (
                     <>
                     <button className="dv-btn dv-btn-primary" onClick={save} disabled={saving}>
-                        {saving ? "Saving..." : "Save Changes"}
+                        {saving ? "Saving..." : "Save"}
                     </button>
                     <button className="dv-btn" onClick={cancel} disabled={saving}>
                         Cancel

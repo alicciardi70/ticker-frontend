@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Simple "Marquee" component
 const TickerTape = () => {
@@ -35,20 +36,43 @@ const TickerTape = () => {
 };
 
 export default function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
+  const navigate = useNavigate(); 
   const [hover, setHover] = useState(false);
-  
-  // --- NEW: Image Rotation Logic ---
-  const heroImages = ['/hero1.jpg', '/hero2.jpg']; // Must be in the 'public' folder
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // --- Auth Check ---
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, []);
+
+  // --- Image Rotation Logic ---
+  const heroImages = ['/hero1.jpg', '/hero2.jpg']; 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
-    }, 4000); // Switches every 4000ms (4 seconds)
-
-    return () => clearInterval(interval); // Cleanup on unmount
+    }, 4000); 
+    return () => clearInterval(interval); 
   }, []);
-  // --------------------------------
+
+  // --- Main Button Logic ---
+  const handleMainAction = () => {
+      if (isAuthenticated) {
+          // EXISTING USER: Go directly to Devices page
+          navigate("/devices");
+      } else {
+          // NEW CUSTOMER: Go to shop/products
+          navigate("/products"); 
+      }
+  };
+
+  const handleLogout = () => {
+      localStorage.removeItem("token");
+      setIsAuthenticated(false);
+      window.location.reload(); 
+  };
 
   return (
     <div style={{
@@ -65,19 +89,38 @@ export default function LandingPage({ onLoginClick }: { onLoginClick: () => void
         <div style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1px' }}>
           TICKER<span style={{ color: '#00ff41' }}>.INK</span>
         </div>
-        <button 
-          onClick={onLoginClick}
-          style={{
-            background: 'transparent',
-            border: '1px solid #333',
-            color: '#fff',
-            padding: '8px 20px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}>
-          Log In
-        </button>
+        
+        {/* Top Right: Always Login/Logout */}
+        {isAuthenticated ? (
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: '1px solid #333',
+                color: '#888',
+                padding: '8px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+              Log Out
+            </button>
+        ) : (
+            <button 
+              onClick={onLoginClick}
+              style={{
+                background: 'transparent',
+                border: '1px solid #333',
+                color: '#fff',
+                padding: '8px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}>
+              Log In
+            </button>
+        )}
       </nav>
 
       {/* 2. Hero Section */}
@@ -116,7 +159,7 @@ export default function LandingPage({ onLoginClick }: { onLoginClick: () => void
 
         {/* 3. The "Action" Button */}
         <button 
-          onClick={onLoginClick}
+          onClick={handleMainAction}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
           style={{
@@ -133,10 +176,10 @@ export default function LandingPage({ onLoginClick }: { onLoginClick: () => void
             transform: hover ? 'scale(1.05)' : 'scale(1)'
           }}
         >
-          Manage My Device &rarr;
+          {isAuthenticated ? "Manage My Device →" : "Shop Ticker →"}
         </button>
 
-        {/* 4. Product Image Section (Rotates) */}
+        {/* 4. Product Image Section */}
         <div style={{ 
           marginTop: '60px', 
           width: '100%', 
@@ -150,9 +193,8 @@ export default function LandingPage({ onLoginClick }: { onLoginClick: () => void
           justifyContent: 'center',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           position: 'relative',
-          overflow: 'hidden' // Ensures image doesn't spill out
+          overflow: 'hidden'
         }}>
-          
           <img 
             src={heroImages[currentImageIndex]} 
             alt="Ticker Device"
@@ -161,11 +203,10 @@ export default function LandingPage({ onLoginClick }: { onLoginClick: () => void
               maxHeight: '90%',
               zIndex: 10,
               position: 'relative',
-              transition: 'opacity 0.5s ease-in-out' // Adds a smooth feel if you add opacity logic later
+              transition: 'opacity 0.5s ease-in-out'
             }} 
           />
           
-          {/* Simulated "Glow" behind the device */}
           <div style={{
             position: 'absolute',
             top: '50%',

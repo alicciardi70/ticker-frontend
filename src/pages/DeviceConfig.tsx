@@ -351,7 +351,7 @@ export function DeviceConfigPanel({deviceId, embedded = false, onClose, onSaved,
                 onClick={saveDeviceSettings}
                 disabled={saving || tzLoading || !editTimezoneId}
               >
-                {saving ? "Saving…" : "Save Changes"}
+                {saving ? "Saving…" : "Save"}
               </button>
 
               <button

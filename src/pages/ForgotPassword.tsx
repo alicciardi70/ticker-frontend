@@ -3,59 +3,55 @@ import { Link } from "react-router-dom";
 import { API_BASE } from "../lib/api";
 
 const styles = {
-    // Shared styles from Login
-    primary: "#111827",
-    errorBg: "#fee2e2",
-    errorText: "#b91c1c",
-    errorBorder: "#fecaca",
-    borderColor: "#e5e7eb",
     wrapper: {
         maxWidth: 420,
         margin: "60px auto",
-        background: "#fff",
-        border: "1px solid #e5e7eb",
+        background: "#111", // Dark card background
+        border: "1px solid #333", // Dark border
         borderRadius: 12,
         padding: 24,
-        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-        color: "#0f172a",
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.5)",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        color: "#fff", // White text
     },
     button: {
-        padding: "10px 16px",
+        padding: "12px 16px",
         borderRadius: 8,
-        background: "#111827",
-        color: "#fff",
+        background: "#fff", // White button (or #00ff41 for neon)
+        color: "#000",
         border: "none",
         cursor: "pointer",
         width: "100%",
-        fontWeight: 600,
+        fontWeight: 700,
         transition: "opacity 0.15s",
         fontSize: 15,
+        marginTop: 10
     },
     input: {
         width: "100%",
-        padding: "10px",
-        border: "1px solid #e5e7eb",
+        padding: "12px",
+        background: "#000", // Black input background
+        border: "1px solid #333", // Dark input border
         borderRadius: 8,
         marginBottom: 10,
         outline: "none",
-        transition: "border-color 0.15s",
+        color: "#fff", // White text input
         fontSize: 15,
     },
     error: {
-        color: "#b91c1c",
-        background: "#fee2e2",
-        border: "1px solid #fecaca",
-        padding: 10,
+        color: "#ef4444",
+        background: "rgba(239, 68, 68, 0.1)",
+        border: "1px solid rgba(239, 68, 68, 0.2)",
+        padding: 12,
         borderRadius: 8,
         marginBottom: 16,
         fontSize: 14,
     },
     success: {
-        color: "#16a34a",
-        background: "#f0fff4",
-        border: "1px solid #bbf7d0",
-        padding: 10,
+        color: "#00ff41",
+        background: "rgba(0, 255, 65, 0.05)",
+        border: "1px solid rgba(0, 255, 65, 0.2)",
+        padding: 12,
         borderRadius: 8,
         marginBottom: 16,
         fontSize: 14,
@@ -64,9 +60,15 @@ const styles = {
     label: {
         display: "block",
         fontSize: 14,
-        marginBottom: 4,
-        color: "#374151",
+        marginBottom: 6,
+        color: "#888", // Dimmer label
         fontWeight: 500,
+    },
+    link: {
+        color: "#888",
+        textDecoration: "none",
+        fontSize: 14,
+        transition: "color 0.2s"
     }
 };
 
@@ -89,7 +91,6 @@ export default function ForgotPassword() {
                 body: JSON.stringify({ email: email.trim().toLowerCase() }),
             });
 
-            // Backend always returns 202 accepted (even if email not found) to prevent user enumeration
             if (res.status === 202) {
                 setStatusMsg("If that email is in our system, you will receive a password reset link shortly.");
             } else {
@@ -105,19 +106,11 @@ export default function ForgotPassword() {
 
     return (
         <div style={styles.wrapper}>
-            <h1 style={{ marginBottom: 12, fontSize: 24, fontWeight: 700, textAlign: "center" }}>Reset Password</h1>
-            <p style={{ marginBottom: 24, fontSize: 14, color: "#64748b", textAlign: "center" }}>Enter your email address to receive a password reset link.</p>
+            <h1 style={{ marginBottom: 12, fontSize: 24, fontWeight: 700, textAlign: "center", color: '#fff' }}>Reset Password</h1>
+            <p style={{ marginBottom: 24, fontSize: 14, color: "#888", textAlign: "center" }}>Enter your email address to receive a password reset link.</p>
 
-            {statusMsg && (
-                <div style={styles.success}>
-                    {statusMsg}
-                </div>
-            )}
-            {err && (
-                <div style={styles.error}>
-                    {err}
-                </div>
-            )}
+            {statusMsg && <div style={styles.success}>{statusMsg}</div>}
+            {err && <div style={styles.error}>{err}</div>}
 
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
                 <div>
@@ -129,17 +122,18 @@ export default function ForgotPassword() {
                         required
                         autoComplete="email"
                         style={styles.input}
+                        placeholder="name@example.com"
                     />
                 </div>
                 <button
                     disabled={loading}
                     style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
                 >
-                    {loading ? "Sending link…" : "Send Reset Link"}
+                    {loading ? "Sending..." : "Send Reset Link"}
                 </button>
             </form>
-            <div style={{ marginTop: 20, textAlign: "center", fontSize: 14 }}>
-                <Link to="/login" style={{ color: styles.primary, fontWeight: 500 }}>← Back to Sign In</Link>
+            <div style={{ marginTop: 24, textAlign: "center" }}>
+                <Link to="/login" style={styles.link}>← Back to Sign In</Link>
             </div>
         </div>
     );
